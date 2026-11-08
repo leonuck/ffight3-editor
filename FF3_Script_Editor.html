@@ -1,0 +1,3385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FF3 Script & Visual Editor – Inimigos e Rotas</title>
+<style>
+:root{
+  --bg:#121316;--panel:#1a1c22;--panel-sub:#23262f;--ink:#e4e6eb;--mute:#8b90a0;--line:#2e3340;
+  --acc:#ff4d4f;--acc2:#3b82f6;--ok:#10b981;--warn:#f59e0b;--chip:#282c37;
+  --screen-bg:#0d1117;--floor-bg:#161c28;--floor-line:rgba(59,130,246,0.18);
+  --sel:#f59e0b;
+}
+@media (prefers-color-scheme:light){
+  :root[data-theme="light"]{
+    --bg:#f4f5f8;--panel:#ffffff;--panel-sub:#f0f2f6;--ink:#1f2937;--mute:#6b7280;--line:#e5e7eb;
+    --acc:#dc2626;--acc2:#2563eb;--ok:#059669;--warn:#d97706;--chip:#f3f4f6;
+    --screen-bg:#f8fafc;--floor-bg:#e2e8f0;--floor-line:rgba(37,99,235,0.15);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;position:sticky;top:0;z-index:20}
+h1{font-size:15px;margin:0 6px 0 0;font-weight:700;display:flex;align-items:center;gap:6px}
+h1 span{background:var(--acc);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:800;letter-spacing:0.5px}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .15s ease}
+button:hover{border-color:var(--acc2);background:var(--panel-sub)}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+button.pri:hover{background:#ff6163}
+button.sec{background:var(--acc2);color:#fff;border-color:var(--acc2);font-weight:600}
+button.sec:hover{background:#4b8cf7}
+button.proj{background:#059669;color:#fff;border-color:#059669;font-weight:600}
+button.proj:hover{background:#10b981;border-color:#10b981}
+button.proj-load{background:#475569;color:#fff;border-color:#475569;font-weight:600}
+button.proj-load:hover{background:#64748b;border-color:#64748b}
+button.lang-btn{background:var(--chip);border:1px solid var(--line);color:var(--ink);font-weight:700;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+button.lang-btn:hover{border-color:var(--warn);color:var(--warn);background:var(--panel-sub)}
+button:disabled{opacity:.45;cursor:not-allowed}
+label.chk{display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none;font-size:12.5px}
+label.chk input{margin:0}
+#fname{color:var(--mute);font-size:12px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 54px)}
+#side{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
+.st{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s ease}
+.st:hover{background:var(--panel-sub)}
+.st.on{background:var(--panel-sub);border-left:3px solid var(--acc);padding-left:9px}
+.st b{font-weight:600;display:block;font-size:13px}
+.st small{display:block;color:var(--mute);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod{color:var(--warn);font-weight:bold}
+#work{padding:14px 18px;overflow-x:hidden}
+.empty{margin:60px auto;max-width:520px;color:var(--mute);text-align:center;line-height:1.6}
+.empty h2{color:var(--ink);margin-bottom:8px}
+
+/* Top toolbar */
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.pill{background:var(--chip);border-radius:10px;padding:2px 8px;font-size:11.5px;color:var(--mute);border:1px solid var(--line);cursor:pointer}
+.pill.active{background:var(--acc2);color:#fff;border-color:var(--acc2);font-weight:600}
+
+/* Secret door panel */
+.secret-panel{background:var(--panel-sub);border:1px solid var(--warn);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
+.secret-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.secret-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.secret-panel b{color:var(--warn)}
+.secret-panel select, .secret-panel input{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;font-size:12px;color:var(--ink)}
+.door-card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;transition:border-color 0.2s}
+.door-card.active-stage{border-color:var(--warn);background:rgba(245,158,11,0.06)}
+.btn-del-door{background:transparent;border:1px solid var(--acc);color:var(--acc);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px}
+.btn-del-door:hover{background:var(--acc);color:#fff}
+
+/* Visual board */
+.board-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:14px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.board-header{padding:8px 12px;background:var(--panel-sub);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.board-header .left{display:flex;align-items:center;gap:6px}
+.board-header .right{display:flex;align-items:center;gap:6px}
+.board-viewport{position:relative;width:100%;overflow-x:auto;overflow-y:hidden;background:#090a0d;padding:12px 0;display:flex;justify-content:center}
+.board-arena{position:relative;height:224px;background:#0f1118;border-top:1px solid #1f2433;border-bottom:1px solid #1f2433;user-select:none;box-shadow:inset 0 0 20px rgba(0,0,0,0.8)}
+
+/* Arena layers */
+.arena-side-left{position:absolute;left:0;top:0;bottom:0;width:70px;background:repeating-linear-gradient(45deg, rgba(220,38,38,0.06), rgba(220,38,38,0.06) 10px, transparent 10px, transparent 20px);border-right:1px dashed rgba(220,38,38,0.4)}
+.arena-side-right{position:absolute;right:0;top:0;bottom:0;width:70px;background:repeating-linear-gradient(45deg, rgba(37,99,235,0.06), rgba(37,99,235,0.06) 10px, transparent 10px, transparent 20px);border-left:1px dashed rgba(37,99,235,0.4)}
+.arena-screen{position:absolute;left:70px;top:0;bottom:0;width:256px;background:var(--screen-bg);border-left:2px solid rgba(16,185,129,0.7);border-right:2px solid rgba(16,185,129,0.7);box-shadow:inset 0 0 30px rgba(0,0,0,0.3)}
+.arena-screen-tag{position:absolute;left:75px;top:4px;font-size:9.5px;color:rgba(16,185,129,0.9);letter-spacing:1px;font-weight:700;text-transform:uppercase;pointer-events:none}
+.arena-side-tag-l{position:absolute;left:6px;top:4px;font-size:9px;color:rgba(220,38,38,0.8);font-weight:700;text-transform:uppercase;pointer-events:none}
+.arena-side-tag-r{position:absolute;right:6px;top:4px;font-size:9px;color:rgba(37,99,235,0.8);font-weight:700;text-transform:uppercase;pointer-events:none}
+
+/* Walkable floor */
+.arena-floor{position:absolute;left:0;right:0;top:150px;height:65px;background:rgba(245,158,11,0.03);border-top:1px dashed rgba(245,158,11,0.45);border-bottom:1px solid rgba(245,158,11,0.3);pointer-events:none}
+.arena-floor-grid{position:absolute;inset:0;background:repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(245,158,11,0.06) 15px, rgba(245,158,11,0.06) 16px);pointer-events:none}
+.arena-floor-label{position:absolute;left:75px;top:152px;font-size:9px;color:rgba(245,158,11,0.8);letter-spacing:0.5px;pointer-events:none}
+
+/* Door trigger zone on board */
+.arena-door-zone{position:absolute;border:2px dashed var(--warn);background:rgba(245,158,11,0.15);box-shadow:0 0 14px rgba(245,158,11,0.25);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:4px;pointer-events:none;z-index:4;border-radius:4px}
+.door-tag{background:var(--warn);color:#000;font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:0.3px;white-space:nowrap}
+
+/* Enemy Draggable Tokens - Real Pixel-Art Sprites */
+.enemy-token{position:absolute;transform:translate(-50%, -100%);cursor:grab;z-index:10;display:flex;flex-direction:column;align-items:center;user-select:none;transition:transform .05s linear}
+.enemy-token:active{cursor:grabbing}
+.enemy-token.is-selected{z-index:25}
+.enemy-token.is-boss{z-index:20}
+.enemy-token.dimmed{opacity:0.25;pointer-events:none}
+.enemy-token.dimmed.is-boss{opacity:0.75;pointer-events:auto;filter:grayscale(30%)}
+
+.token-tag{display:flex;align-items:center;gap:4px;background:rgba(15,23,42,0.92);border:1.5px solid var(--chip);border-radius:4px;padding:1px 6px;box-shadow:0 2px 6px rgba(0,0,0,0.7);margin-bottom:2px;white-space:nowrap;backdrop-filter:blur(2px)}
+.enemy-token.is-selected .token-tag{border-color:var(--sel);background:rgba(2,132,199,0.95);box-shadow:0 0 10px var(--sel)}
+.enemy-token.is-boss .token-tag{border-color:#f59e0b;background:rgba(120,53,15,0.95);box-shadow:0 0 12px rgba(245,158,11,0.6)}
+
+.token-num{font-size:9.5px;font-weight:800;color:#fff}
+.token-name{font-size:9px;font-weight:700;color:#e2e8f0;max-width:85px;overflow:hidden;text-overflow:ellipsis}
+.token-hp-bar{width:42px;height:3.5px;background:rgba(0,0,0,0.8);border-radius:2px;overflow:hidden;margin-bottom:2px;border:0.5px solid rgba(255,255,255,0.2)}
+.token-hp-fill{height:100%;background:var(--ok)}
+
+.token-sprite-wrap{display:flex;justify-content:center;align-items:flex-end;position:relative}
+.token-sprite-img{display:block;image-rendering:pixelated;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.75));transition:filter .15s ease, transform .15s ease;pointer-events:none}
+.enemy-token:hover .token-sprite-img{filter:drop-shadow(0 0 6px var(--ok)) drop-shadow(0 4px 8px rgba(0,0,0,0.85))}
+.enemy-token.is-selected .token-sprite-img{filter:drop-shadow(0 0 8px var(--sel)) drop-shadow(0 0 2px #fff);transform:scale(1.04)}
+.enemy-token.is-boss .token-sprite-img{filter:drop-shadow(0 0 8px #f59e0b) drop-shadow(0 4px 10px rgba(0,0,0,0.9))}
+
+.token-shadow{position:absolute;bottom:-4px;width:38px;height:9px;border-radius:50%;background:radial-gradient(ellipse at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 75%);z-index:-1;pointer-events:none}
+.token-coords{position:absolute;bottom:-18px;font-size:8.5px;white-space:nowrap;background:rgba(0,0,0,0.85);color:#cbd5e1;padding:1px 4px;border-radius:3px;font-family:ui-monospace,Consolas,monospace;pointer-events:none}
+.enemy-token.is-selected .token-coords{background:var(--sel);color:#000;font-weight:700}
+
+/* Stage Boss Status Banner */
+.stage-boss-banner{background:linear-gradient(90deg, rgba(30,27,75,0.85) 0%, rgba(15,23,42,0.9) 100%);border:1px solid rgba(245,158,11,0.5);border-radius:6px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;gap:12px;box-shadow:0 0 14px rgba(245,158,11,0.12)}
+.stage-boss-avatar{height:42px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.7))}
+
+/* Interactive Door Zone & Resizing Handles */
+.arena-door-zone{position:absolute;border:2px dashed #f59e0b;background:rgba(245,158,11,0.22);box-shadow:0 0 16px rgba(245,158,11,0.35);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:4px;z-index:8;border-radius:4px;cursor:grab;user-select:none;transition:border-color 0.15s,box-shadow 0.15s;pointer-events:auto!important}
+.arena-door-zone:hover,.arena-door-zone.is-selected{border-color:#38bdf8!important;background:rgba(56,189,248,0.28)!important;box-shadow:0 0 20px rgba(56,189,248,0.5)!important;z-index:9!important}
+.arena-door-zone:active{cursor:grabbing}
+.door-resize-handle{position:absolute;background:#fff;border:1.5px solid #0f172a;border-radius:2px;z-index:11}
+.door-handle-l{left:-5px;top:25%;bottom:25%;width:8px;cursor:ew-resize}
+.door-handle-r{right:-5px;top:25%;bottom:25%;width:8px;cursor:ew-resize}
+.door-handle-t{top:-5px;left:25%;right:25%;height:8px;cursor:ns-resize}
+
+
+/* Canvas & View Mode */
+#stageBgCanvas{position:absolute;left:0;top:0;pointer-events:none;image-rendering:pixelated;z-index:1}
+.board-viewport{overflow-x:auto;overflow-y:hidden;background:#090b10;border-radius:6px;scrollbar-width:thin}
+.board-viewport::-webkit-scrollbar{height:10px}
+.board-viewport::-webkit-scrollbar-thumb{background:#334155;border-radius:5px}
+
+/* Wave barrier in pano mode */
+.arena-wave-barrier{position:absolute;top:0;bottom:0;width:2px;border-left:2px dashed rgba(239,68,68,0.6);pointer-events:none;z-index:3}
+.arena-wave-badge{position:absolute;top:4px;left:4px;background:#ef4444;color:#fff;font-size:8.5px;font-weight:800;padding:1px 4px;border-radius:3px;white-space:nowrap}
+
+/* Camera box indicator */
+.arena-camera-box{position:absolute;top:0;bottom:0;border:2px solid rgba(16,185,129,0.7);background:rgba(16,185,129,0.04);pointer-events:none;z-index:2}
+.arena-camera-tag{position:absolute;top:4px;left:6px;font-size:8.5px;color:#10b981;font-weight:700;letter-spacing:0.5px}
+
+/* Avatar SVGs inside tokens */
+.token-avatar svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5))}
+
+/* Drag guides */
+.drag-guide-x{position:absolute;top:0;bottom:0;width:1px;background:var(--sel);border-left:1px dashed var(--sel);pointer-events:none;z-index:5;display:none}
+.drag-guide-y{position:absolute;left:0;right:0;height:1px;background:var(--sel);border-top:1px dashed var(--sel);pointer-events:none;z-index:5;display:none}
+
+/* Selected enemy mini toolbar */
+.board-actions{padding:8px 12px;background:var(--panel-sub);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px}
+
+/* Table styles */
+table{border-collapse:collapse;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+th,td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11.5px;color:var(--mute);font-weight:600;position:sticky;top:0;background:var(--panel);z-index:2}
+td input,td select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:3px 4px;font-size:12px}
+td input.n{width:64px}td input.h{width:46px}
+tr.cmd td{background:var(--chip);color:var(--mute)}
+tr.warn td:first-child{border-left:3px solid var(--warn)}
+tr.row-selected td{background:rgba(245,158,11,0.12)!important}
+tr:hover td{background:var(--panel-sub)}
+.act button{padding:2px 6px;font-size:11px}
+#log{white-space:pre-wrap;font:12px ui-monospace,Consolas,monospace;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:10px;display:none}
+.hint{font-size:11px;color:var(--mute)}
+@media(max-width:850px){main{grid-template-columns:1fr}#side{position:static;max-height:200px}}
+
+/* Modal Dialog for Stage Cloning */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s ease}
+.modal-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:92%;max-width:540px;padding:20px;box-shadow:0 16px 40px rgba(0,0,0,0.65);display:flex;flex-direction:column;gap:12px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.modal-header h3{margin:0;font-size:15px;color:var(--ok);display:flex;align-items:center;gap:6px}
+.modal-close{background:transparent;border:none;color:var(--mute);font-size:22px;cursor:pointer;line-height:1}
+.modal-close:hover{color:#fff}
+.modal-body{display:flex;flex-direction:column;gap:12px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
+.warn-wall{background:rgba(239,68,68,0.18)!important;color:#fca5a5!important;font-weight:bold}
+.btn-reclone{width:100%;padding:6px 10px;background:var(--chip);border:1px solid var(--line);color:var(--ink);font-size:11px;font-weight:600;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background .15s}
+.btn-reclone:hover{background:var(--panel-sub);border-color:var(--warn);color:var(--warn)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>FF3 Script & Visual Editor <span>2026</span></h1>
+  <input type="file" id="file" accept=".sfc,.smc,.rom,.bin" hidden>
+  <button id="open">Abrir ROM…</button><span id="fname">nenhuma ROM carregada</span>
+  <label class="chk" title="Libera o 4º slot de inimigo nos 3 spawners (5 não é possível: só existem 4 páginas de RAM $0700-$0A00)"><input type="checkbox" id="p_slots" checked> 4 inimigos simultâneos</label>
+  <label class="chk" title="Usa os 96 tiles de VRAM do Player 2 ($6600-$6BFF, 6 unidades = Gfx 3) como bloco exclusivo extra, elevando o limite de 16 para 22 unidades sem bugs visuais"><input type="checkbox" id="p_p2vram" checked> usar VRAM P2 (+6 unid.)</label>
+  <label class="chk" title="Ignora a checagem de Gate ($1F11) em C0:70D1 para que inimigos de 2P também apareçam no modo 1P"><input type="checkbox" id="p_allgates" checked> liberar 2P no 1P</label>
+  <label class="chk" title="Sensor Ativo de Porta Secreta: Pressionar CIMA na porta da fase ativa o teletransporte em tempo real para a Sala Secreta"><input type="checkbox" id="p_secret_door" checked> porta secreta ativa</label>
+  <label class="chk" title="Modo legado/experimental: compartilha VRAM entre inimigos do mesmo tipo"><input type="checkbox" id="p_share"> compartilhar gráficos (bugado)</label>
+  <button id="save" class="pri" disabled>Salvar ROM</button>
+  <button id="ips" class="sec" disabled>Baixar IPS</button>
+  <input type="file" id="file_proj" accept=".json" hidden>
+  <button id="btn_save_proj" class="proj" disabled title="Salvar todas as alterações (inimigos, ondas, portas e opções) em um arquivo JSON para continuar a edição mais tarde">💾 Salvar Projeto (JSON)</button>
+  <button id="btn_load_proj" class="proj-load" title="Carregar um projeto salvo anteriormente (.json) para restaurar suas edições">📂 Carregar Projeto (JSON)</button>
+  <button id="btn_lang" class="lang-btn" title="Toggle Language / Alternar Idioma (English / Português)">🌐 EN</button>
+</header>
+<main>
+  <!-- Modal Dialog: Clonador de Fase / Criador da Fase 44 -->
+  <div id="modalStageClone" class="modal-backdrop" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modalTitle">✨ Criar Nova Sala Secreta (Fase 44)</h3>
+        <button class="modal-close" id="btnModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalDesc" style="font-size:12px;color:var(--mute);margin:0 0 4px 0;line-height:1.4;">
+          Escolha qualquer uma das <b>43 fases do jogo</b> para servir como base visual (gráficos, paletas de cores, música de fundo) e combate:
+        </p>
+        
+        <div>
+          <label id="modalBaseLabel" style="display:block;font-size:11.5px;font-weight:700;margin-bottom:5px;color:var(--ink);">Base Stage to Clone:</label>
+          <select id="selModalStage" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:12.5px;cursor:pointer;"></select>
+        </div>
+
+        <div style="background:var(--panel-sub);border:1px solid var(--line);border-radius:8px;padding:10px 12px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:6px;">
+            <input type="checkbox" id="chkModalCloneEnemies" checked>
+            <span id="modalChkEnemiesLabel"><b>Clonar todos os inimigos originais da fase escolhida</b></span>
+          </label>
+          <div id="modalEnemiesDesc" style="font-size:11px;color:var(--mute);margin-left:22px;line-height:1.4;">
+            Se você substituir o chefe por um inimigo comum (Billy, May, Dirk, Andore), o editor <b>ajusta automaticamente o chão e as coordenadas</b> para que ele nunca fique preso na parede!
+          </div>
+        </div>
+
+        <div style="background:var(--panel-sub);border:1px solid var(--line);border-radius:8px;padding:10px 12px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" id="chkModalConnectDoor" checked>
+            <span id="modalChkDoorLabel"><b>Conectar Porta da Cela (Fase 2) nesta sala</b></span>
+          </label>
+          <div id="modalDoorDesc" style="font-size:11px;color:var(--mute);margin-left:22px;margin-top:4px;line-height:1.4;">
+            Ao entrar na cela da prisão, transporta para esta nova fase secreta e, ao vencê-la, segue direto para o Chefe Dave.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnModalCancel" style="padding:7px 14px;background:var(--panel-sub);border:1px solid var(--line);color:var(--ink);border-radius:6px;cursor:pointer;font-size:12px;">Cancelar</button>
+        <button id="btnModalConfirm" style="padding:7px 16px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:12px;border-radius:6px;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,0.35);">✨ Confirmar e Criar</button>
+      </div>
+    </div>
+  </div>
+
+  <nav id="side"></nav>
+  <section id="work"><div class="empty"><h2>Abra a ROM Final Fight 3 (USA)</h2>
+  <p>Funciona com a ROM original ou com a versão “otimizada”. Os patches de engine e rotas aplicam-se à versão otimizada.</p>
+  <p>Com o <b>Tabuleiro Visual</b>, você pode arrastar os inimigos diretamente na tela do jogo para definir sua posição de entrada e profundidade!</p></div></section>
+</main>
+<script>
+
+// ===== Núcleo do editor de scripts de fase (Final Fight 3 USA, HiROM) =====
+const TABLE=0x34000;                       // tabela de ponteiros das fases (C3:4000)
+const FREE_RUNS=[[0xE55A8,0xE7E00],[0x0BEA20,0xC0000],[0x04254A,0x43000],[0x0336B6,0x34000]];
+const SPRITES=["CRASH", "GUY (crash)", "HAGGAR (crash)", "LUCIA (crash)", "DEAN (crash)", "BILLY (brown body)", "MAY (purple dress)", "ANDORE (red profile)", "DIRK (olive clothe)", "HUNTER (orange clothe)", "G (orange clothe)", "JOE (black clothe)", "CRASH", "CRASH", "FAT JACK (pink sweater)", "FRITZ", "RAY (gray clothe)", "RICK (black clothe)", "JOHNNY (blue clothe)", "ARBY (redbrick sweater)", "DAVE", "CALLMAN", "CAINE", "DRAKE", "WONG", "STRAY", "BLACK", "BUCKET", "PLANT", "CRATE", "POT", "OIL DRUM", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "ANCHOR", "KNIFE", "CRASH", "BULL", "GUY'S SHADOW", "OIL DRUM FIRED", "COMPUTER", "EXPLOTION", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "BILLY (white body)", "MAY (orange dress)", "ANDORE (brown profile)", "DIRK (green body)", "HUNTER (green clothe)", "G (gray clothe)", "JOE (pink clothe)", "CRASH", "CRASH", "FAT JACK (red sweater)", "FRITZ", "RAY (orange clothe)", "RICK (green body)", "JOHNNY (brown clothe)", "ARBY (red sweater)", "DAVE", "CALLMAN", "CAINE", "DRAKE", "WONG", "STRAY", "BLACK", "BUCKET", "PLANT", "CRATE", "POT", "OIL DRUM", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "ANCHOR", "KNIFE", "CRASH", "BULL", "GUY'S SHADOW", "OIL DRUM FIRED", "COMPUTER", "EXPLOTION", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "BILLY (orange clothe)", "MAY (gray dress)", "ANDORE (green profile)", "DIRK (olivedrab profile)", "HUNTER (blue clothe)", "G (green clothe)", "JOE (darkgreen clothe)", "CRASH", "CRASH", "FAT JACK (black sweater)", "FRITZ", "RAY (gray clothe)", "RICK (green clothe)", "JOHNNY (gray clothe)", "ARBY (blue sweater)", "DAVE", "CALLMAN", "CAINE", "DRAKE", "WONG", "STRAY", "BLACK", "BUCKET", "PLANT", "CRATE", "POT", "OIL DRUM", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "ANCHOR", "KNIFE", "CRASH", "BULL", "GUY'S SHADOW", "OIL DRUM FIRED", "COMPUTER", "EXPLOTION", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "BILLY (green clothe)", "MAY (blue dress)", "ANDORE (blue profile)", "DIRK (blue clothe)", "HUNTER (gray clothe)", "G (darkgray clothe)", "JOE (green clothe)", "CRASH", "CRASH", "FAT JACK (blue clothe)", "FRITZ", "RAY (darkgreen clothe)", "RICK (blue clothe)", "JOHNNY (olive clothe)", "ARBY (green sweater)", "DAVE", "CALLMAN", "CAINE", "DRAKE", "WONG", "STRAY", "BLACK", "BUCKET", "PLANT", "CRATE", "POT", "OIL DRUM", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "ANCHOR", "KNIFE", "CRASH", "BULL", "GUY'S SHADOW", "OIL DRUM FIRED", "COMPUTER", "EXPLOTION", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH", "CRASH"];
+const ITEMS=["EMPTY", "GLASSES,DOLLAR,BOUQUET,LIGHTER", "DOLLAR,WATCH,COIN,NECKLACE", "DIAMOND,GOLD BAR", "GOLD BAR,DOLLAR,NECKLACE,WATCH,GLASSES,LIGHTER", "CANDY,CHOCOLATE,DRINK,SANDWICHES", "HOTDOG,FRIES,BUN,CHICKEN", "BARBECUE,CURRY", "RANDOM FOOD", "BARBECUE", "PIPE", "NUNCHAKU", "CLUB", "HAMMER", "PIPE,NUNCHAKU,CLUB,HAMMER", "1UP", "YASHICHI"];
+
+const ENGINE={
+  slots4:[{"off": 29068, "orig": "d0", "new": "80"}, {"off": 30361, "orig": "d0", "new": "80"}, {"off": 38060, "orig": "d0", "new": "80"}],
+  allgates:[{"off": 28881, "orig": "f0", "new": "80"}],
+  p2vram:[
+    {"off": 29823, "orig": "e220a9", "new": "4ca0ee"},
+    {"off": 29950, "orig": "a9ff8d", "new": "4ccdee"},
+    {"off": 32750, "orig": "a58aa20000dd270ef007e8e8e0100030f49e270e9e280e", "new": "a58aa20e00dd270ef006caca10f780079e270e9e280eea"},
+    {"off": 44115, "orig": "a58aa20000dd270ef007e8e8e0100030f49e270e9e280e", "new": "a58aa20e00dd270ef006caca10f780079e270e9e280eea"},
+    {"off": 61088, "orig": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "new": "e220a20006bd00004a900dbd2300d008bd8a00cd0200f039c2208a18690001aae220e0000b90dea900eb4c8474ad0400c907b029a20006bd00004a9005bd2300f01bc2208a18690001aae220e0000b90e6a900eba9608d00009c010060a900eba9ff8d00008d010060"}
+  ],
+  share:[{"off": 29118, "orig": "7f74", "new": "a0ee"}, {"off": 32750, "orig": "a58aa20000dd270ef007e8e8e0100030f49e270e9e280e", "new": "22ebeec0eaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaea"}, {"off": 38022, "orig": "bd8a00a20000dd270ef009e8e8e0100030f480069e270e9e280e", "new": "22fceec0eaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaea"}, {"off": 44115, "orig": "a58aa20000dd270ef007e8e8e0100030f49e270e9e280e", "new": "22ebeec0eaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaea"}, {"off": 61088, "orig": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "new": "e220c210a00400b700293f48a20007bd00004a9023bd0100293fc301d01abd8b00cd0400d012bd8a008d0200c220bd22008d0000e2206860c2208a18690001aae220e0000bd0c8684c7f7408e220c2105ac2207b48e220a58a48801008e220c2105ac2208a48e220bd8a0048a20007c2208ac302e220f00dbd00004a9007bd8a00c301f028c2208a18690001aae220e0000bd0dba301a20000dd270ef009e8e8e0100030f480069e270e9e280e68c22068e2207a286b"}]
+};
+
+const hex=(u8)=>Array.from(u8,b=>b.toString(16).padStart(2,'0')).join('');
+const unhex=(s)=>Uint8Array.from(s.match(/../g)||[],h=>parseInt(h,16));
+function cmdLen(b1){return b1===0xFE||b1===0xFC?7:b1===0xFD?3:2;}
+function detectHeader(buf){return (buf.length%1024===512)?512:0;}
+
+function parseScript(rom,h,start){
+  const items=[];let a=start;
+  for(;;){
+    if(a+17>rom.length) throw new Error('script fora da ROM');
+    if(rom[a+h]!==0xFF){items.push({t:'rec',b:Array.from(rom.slice(a+h,a+h+17))});a+=17;continue;}
+    const b1=rom[a+h+1],n=cmdLen(b1);
+    if(b1===0xFF){return {items,end:a+2};}
+    items.push({t:'cmd',b:Array.from(rom.slice(a+h,a+h+n))});a+=n;
+  }
+}
+
+function loadStages(rom){
+  const h=detectHeader(rom);const rows=[];let a=TABLE;
+  for(;;){
+    const ptrs=[];
+    while(rom[a+h+2]>=0xC0&&rom[a+h+2]<0xF0){ptrs.push({at:a,v:rom[a+h]|rom[a+h+1]<<8|rom[a+h+2]<<16});a+=3;}
+    if(!ptrs.length||rom[a+h]!==0)break; a++; rows.push(ptrs);
+  }
+  const stages=rows.map((r,i)=>{
+    const p=r[r.length-1];const start=p.v-0xC00000;
+    const s=parseScript(rom,h,start);
+    return {row:i,id:i+1,area:i+1,ptrAt:p.at,start,end:s.end,items:s.items,orig:s.items.map(x=>x.b.slice())};
+  });
+  return {h,stages};
+}
+
+function serialize(items){
+  const out=[];for(const it of items)out.push(...it.b);out.push(0xFF,0xFF);return Uint8Array.from(out);
+}
+
+function checksum(rom,h){
+  const d=rom.subarray(h);let sum=0;
+  if(d.length===0x300000){let a=0,b=0;for(let i=0;i<0x200000;i++)a+=d[i];for(let i=0x200000;i<d.length;i++)b+=d[i];sum=(a+2*b)&0xFFFF;}
+  else{for(let i=0;i<d.length;i++)sum+=d[i];sum&=0xFFFF;}
+  return sum;
+}
+
+function fixChecksum(rom,h){
+  const c=checksum(rom,h);const a=0xFFDC+h;
+  rom[a]=(c^0xFFFF)&255;rom[a+1]=((c^0xFFFF)>>8)&255;rom[a+2]=c&255;rom[a+3]=c>>8;return c;
+}
+
+// Montador seguro do interceptador de fim de fase (65816 machine code)
+// Gancho executado em C0:132A no final da fase (JSL $C0E009 -> JSL $C0F340).
+// Se o jogador venceu a sala secreta, grava exitStage em $0406 para forçar o retorno desejado.
+function buildStageExitHook(doors){
+  const c=[];const b=(...v)=>c.push(...v);
+  // 1. Executa a rotina nativa original em C0:132A
+  b(0x22,0x09,0xE0,0xC0);               // JSL $C0E009
+  b(0x08);                              // PHP
+  b(0xE2,0x20);                        // SEP #$20
+
+  // 2. Trava de Game Over: se ambos os jogadores estiverem mortos, não redireciona
+  // $0500 bit 0 = P1 ativo/vivo, $0600 bit 0 = P2 ativo/vivo
+  b(0xAD,0x00,0x05);                   // LDA $0500
+  b(0x0D,0x00,0x06);                   // ORA $0600
+  b(0x89,0x01);                        // BIT #$01
+  const j_dead=c.length; b(0xF0,0);    // BEQ .exit (jogadores mortos -> Game Over normal)
+
+  // 3. Mapeia saídas personalizadas para cada sala de destino (sem duplicidade)
+  const exitMap = new Map();
+  for(const d of doors){
+    if(d.destStage && d.exitStage){
+      exitMap.set(d.destStage, d.exitStage);
+    }
+  }
+
+  for(const [destStage, exitStage] of exitMap.entries()){
+    b(0xAD,0x03,0x1F);                  // LDA $1F03 (fase atual)
+    b(0xC9,destStage);                  // CMP #destStage
+    const j_skip=c.length; b(0xD0,0);   // BNE .skip
+
+    b(0xA9,exitStage);                  // LDA #exitStage
+    b(0x8D,0x06,0x04);                  // STA $0406 (força o despachante a ir para a fase de retorno!)
+    b(0x28);                            // PLP
+    b(0x6B);                            // RTL
+
+    const skip_addr=c.length;
+    c[j_skip+1]=(skip_addr-(j_skip+2))&0xFF;
+  }
+
+  // .exit:
+  const exit_addr=c.length;
+  b(0x28);                              // PLP
+  b(0x6B);                              // RTL
+
+  c[j_dead+1]=(exit_addr-(j_dead+2))&0xFF;
+  return c;
+}
+
+
+function applyPatchSet(rom,h,set){
+  for(const p of set){
+    const o=unhex(p.orig),n=unhex(p.new);
+    for(let i=0;i<o.length;i++) if(rom[p.off+h+i]!==o[i])
+      throw new Error('ROM diferente do esperado em 0x'+(p.off+i).toString(16)+' (patch de engine só serve na ROM "otimizada")');
+    rom.set(n,p.off+h);
+  }
+}
+
+function isZero(rom,h,a,b){for(let i=a;i<b;i++)if(rom[i+h]!==0)return false;return true;}
+
+// Montador seguro da rotina ativa de sensor de portas (65816 machine code)
+// Gancho executado UMA VEZ POR FRAME em C0:12F4 (JSR $2266 -> JSR $F060).
+// NUNCA altera o Data Bank (DB), mantendo DB = $00 para todos os registradores de WRAM.
+// Utiliza apenas desvios curtos para a frente (branch <= 34 bytes), sem risco de overflow.
+function buildMultiDoorHook(doors){
+  const c=[];const b=(...v)=>c.push(...v);const w=v=>c.push(v&255,(v>>8)&255);
+  // 1. Executa a rotina nativa original de gameplay (C0:2266)
+  b(0x20,0x66,0x22);                    // JSR $2266
+  b(0x08);                              // PHP
+  b(0xE2,0x20);                        // SEP #$20
+
+  // 2. Trava de segurança: se transição já estiver ativa ($0406 != 0), sai imediatamente
+  b(0xAD,0x06,0x04); const j_trans=c.length; b(0xD0,0); // LDA $0406 : BNE .exit
+
+  // 3. Trava de segurança: Player 1 ativo/vivo ($0500 bit 0)
+  b(0xAD,0x00,0x05); b(0x89,0x01); const j_p1=c.length; b(0xF0,0); // LDA $0500 : BIT #$01 : BEQ .exit
+
+  // 4. Input do controle: direcional CIMA pressionado ($1E5B bit 3)
+  b(0xAD,0x5B,0x1E); b(0x89,0x08); const j_up=c.length; b(0xD0,0); // LDA $1E5B : BIT #$08 : BNE .doors
+
+  // .exit: saída padrão imediata (restaura flags e retorna ao laço de gameplay)
+  const exit_addr=c.length;
+  b(0x28);                              // PLP
+  b(0x60);                              // RTS
+
+  // Resolve desvios do cabeçalho diretamente para .exit
+  c[j_trans+1]=(exit_addr-(j_trans+2))&0xFF;
+  c[j_p1+1]=(exit_addr-(j_p1+2))&0xFF;
+
+  // Se CIMA estiver pressionado, continua para a verificação das portas
+  const doors_addr=c.length;
+  c[j_up+1]=(doors_addr-(j_up+2))&0xFF;
+
+  // Verificação sequencial segura de cada porta cadastrada
+  for(let i=0; i<doors.length; i++){
+    const d=doors[i];
+    // Checa se o jogador está na fase de origem da porta ($1F03)
+    b(0xAD,0x03,0x1F);                  // LDA $1F03
+    b(0xC9,d.srcStage);                // CMP #srcStage
+    const j_next_stage=c.length; b(0xD0,0); // BNE .next_door
+
+    // Checa coordenada Y do jogador (modo 16-bit)
+    b(0xC2,0x20);                      // REP #$20
+    b(0xAD,0x36,0x05);                  // LDA $0536 (Y)
+    b(0xC9); w(d.maxY*16);              // CMP #maxY
+    const j_fail_y=c.length; b(0xB0,0); // BCS .fail_16
+
+    // Checa coordenadas X do jogador (minX .. maxX)
+    b(0xAD,0x34,0x05);                  // LDA $0534 (X)
+    b(0xC9); w(d.minX*16);              // CMP #minX
+    const j_fail_x1=c.length; b(0x90,0); // BCC .fail_16
+    b(0xC9); w(d.maxX*16);              // CMP #maxX
+    const j_fail_x2=c.length; b(0xB0,0); // BCS .fail_16
+
+    // Porta acionada com sucesso! Dispara transição nativa para a fase de destino
+    b(0xE2,0x20);                      // SEP #$20
+    b(0xA9,d.destStage);               // LDA #destStage
+    b(0x8D,0x06,0x04);                  // STA $0406
+    b(0x28);                            // PLP
+    b(0x60);                            // RTS
+
+    // .fail_16: restaura modo 8-bit se falhar em X ou Y
+    const fail_16_addr=c.length;
+    b(0xE2,0x20);                      // SEP #$20
+
+    // .next_door:
+    const next_door_addr=c.length;
+    c[j_next_stage+1]=(next_door_addr-(j_next_stage+2))&0xFF;
+    c[j_fail_y+1]=(fail_16_addr-(j_fail_y+2))&0xFF;
+    c[j_fail_x1+1]=(fail_16_addr-(j_fail_x1+2))&0xFF;
+    c[j_fail_x2+1]=(fail_16_addr-(j_fail_x2+2))&0xFF;
+  }
+
+  // Se nenhuma porta acionou neste frame:
+  b(0x28);                              // PLP
+  b(0x60);                              // RTS
+
+  return c;
+}
+
+function buildRom(orig,st,opts){
+  const rom=new Uint8Array(orig);const h=st.h;const log=[];
+  if(opts.slots4){applyPatchSet(rom,h,ENGINE.slots4);log.push('Engine: 4 slots simultâneos ativados ($0700-$0A00)');}
+  if(opts.allgates){applyPatchSet(rom,h,ENGINE.allgates);log.push('Engine: inimigos de 2P liberados no modo 1P (C0:70D1)');}
+  if(opts.p2vram){applyPatchSet(rom,h,ENGINE.p2vram);log.push('Engine: VRAM do Player 2 ($6600-$6BFF, +6 unid.) dedicada ao 4º inimigo sem compartilhamento');}
+  else if(opts.share){applyPatchSet(rom,h,ENGINE.share);log.push('Engine: compartilhamento experimental de VRAM ativado');}
+  
+  // Patch de Sensor de Portas Ativas em Tempo Real (Multi-Portas)
+  const activeDoors = (opts.secretDoors||[]).filter(d => d.srcStage && d.destStage);
+  if(opts.secretDoor && activeDoors.length > 0){
+    // Restaura C0:71F2 se veio de uma ROM que tinha o gancho defeituoso anterior
+    if(rom[0x0071F2 + h] === 0x22 && rom[0x0071F3 + h] === 0x60){
+      rom[0x0071F2 + h] = 0x22; rom[0x0071F3 + h] = 0x90; rom[0x0071F4 + h] = 0xE0; rom[0x0071F5 + h] = 0xC0; // JSL $C0E090 original
+    }
+
+    // Gancho por frame: C0:12F4 'JSR $2266' (laço de gameplay) -> 'JSR $F060' (sensor da porta)
+    const o12=[rom[0x0012F4+h],rom[0x0012F5+h],rom[0x0012F6+h]];
+    const okOrig=(o12[0]===0x20&&o12[1]===0x66&&o12[2]===0x22), okDone=(o12[0]===0x20&&o12[1]===0x60&&o12[2]===0xF0);
+    if(!okOrig&&!okDone) throw new Error('C0:12F4 não tem o código esperado (ROM diferente da USA)');
+    rom[0x0012F4+h]=0x20;rom[0x0012F5+h]=0x60;rom[0x0012F6+h]=0xF0;
+
+    const hook=buildMultiDoorHook(activeDoors, 0xF060);
+    if(hook.length > 175) throw new Error('Muitas portas configuradas (tamanho máximo de 175 bytes excedido)');
+    for(let i=0;i<0xB0;i++) rom[0x00F060+h+i]=0xEA;   // limpa com NOP
+    rom.set(new Uint8Array(hook), 0x00F060 + h);
+
+    // Gancho de Fim de Fase: C0:132A 'JSL $C0E009' -> 'JSL $C0F340' (força "ao vencer, sai em")
+    const exitDoors = activeDoors.filter(d => d.destStage && d.exitStage);
+    if(exitDoors.length > 0){
+      const o13=[rom[0x00132A+h],rom[0x00132B+h],rom[0x00132C+h],rom[0x00132D+h]];
+      const okOrig13=(o13[0]===0x22&&o13[1]===0x09&&o13[2]===0xE0&&o13[3]===0xC0);
+      const okDone13=(o13[0]===0x22&&o13[1]===0x40&&o13[2]===0xF3&&o13[3]===0xC0);
+      if(!okOrig13 && !okDone13) throw new Error('C0:132A não tem a instrução esperada');
+      rom[0x00132A+h]=0x22; rom[0x00132B+h]=0x40; rom[0x00132C+h]=0xF3; rom[0x00132D+h]=0xC0;
+      const exitHook = buildStageExitHook(exitDoors);
+      for(let i=0; i<128; i++) rom[0x00F340+h+i] = 0xEA; // limpa NOPs
+      rom.set(new Uint8Array(exitHook), 0x00F340 + h);
+    } else {
+      rom[0x00132A+h]=0x22; rom[0x00132B+h]=0x09; rom[0x00132C+h]=0xE0; rom[0x00132D+h]=0xC0;
+    }
+
+    activeDoors.forEach((d,idx)=>{
+      log.push(`Porta #${idx+1}: Fase ${d.srcStage} (${areaLabel(d.srcStage)}) [X:${d.minX}..${d.maxX}px, Y<=${d.maxY}px] ➔ Leva para Fase ${d.destStage} (${areaLabel(d.destStage)}) ➔ Ao vencer, sai em: Fase ${d.exitStage||3} (${areaLabel(d.exitStage||3)})`);
+    });
+  } else if(!opts.secretDoor){
+    if(rom[0x0012F4+h]===0x20&&rom[0x0012F5+h]===0x60&&rom[0x0012F6+h]===0xF0){
+      rom[0x0012F4+h]=0x20;rom[0x0012F5+h]=0x66;rom[0x0012F6+h]=0x22;
+      log.push('Engine: Gancho de porta secreta desativado (C0:12F4 restaurado para JSR $2266)');
+    }
+    if(rom[0x00132A+h]===0x22&&rom[0x00132B+h]===0x40&&rom[0x00132C+h]===0xF3&&rom[0x00132D+h]===0xC0){
+      rom[0x00132A+h]=0x22;rom[0x00132B+h]=0x09;rom[0x00132C+h]=0xE0;rom[0x00132D+h]=0xC0;
+      log.push('Engine: Gancho de retorno desativado (C0:132A restaurado para JSL $C0E009)');
+    }
+  }
+  // Suporte a Nova Sala Secreta (Fase 44)
+  const s44 = st.stages.find(s => s.id === 44);
+  if(!s44){
+    if(rom[0x000120+h]===0x22&&rom[0x000121+h]===0x80&&rom[0x000122+h]===0xF3&&rom[0x000123+h]===0xC0){
+      rom[0x000120+h]=0x8D;rom[0x000121+h]=0x03;rom[0x000122+h]=0x1F;rom[0x000123+h]=0xC9;rom[0x000124+h]=0x48;
+      log.push('Engine: Gerenciador de Áudio/APU desativado (C0:0120 restaurado)');
+    }
+  }
+
+  // Alocador simples de scripts nas áreas livres
+  const runs = FREE_RUNS.map(r=>({a:r[0],b:r[1],p:r[0]})).filter(r=>isZero(rom,h,r.a,r.b));
+
+  if(s44){
+    const tplStageId = s44.templateStage || 7;
+    const s44Off = 0x342B3 + h;
+    // Lê os 4 ponteiros visuais do template na tabela 0x34000
+    let aTpl = 0x34000 + h;
+    let curTpl = 1;
+    let tplPointers = null;
+    while (aTpl < 0x34000 + h + 0x300) {
+      const ptrs = [];
+      while (rom[aTpl+2] >= 0xC0 && rom[aTpl+2] < 0xF0) {
+        ptrs.push(rom[aTpl] | (rom[aTpl+1] << 8) | (rom[aTpl+2] << 16));
+        aTpl += 3;
+      }
+      if (!ptrs.length) break;
+      if (curTpl === tplStageId) { tplPointers = ptrs; break; }
+      curTpl++;
+      if (rom[aTpl] === 0) aTpl++;
+    }
+    if(tplPointers){
+      for(let p = 0; p < 4; p++){
+        const v = tplPointers[p];
+        rom[s44Off + p*3] = v & 0xFF;
+        rom[s44Off + p*3 + 1] = (v >> 8) & 0xFF;
+        rom[s44Off + p*3 + 2] = (v >> 16) & 0xFF;
+      }
+      rom[s44Off + 15] = 0x00; // terminador da tabela
+      s44.ptrAt = 0x342B3 + 12; // offset do 5º ponteiro (script)
+      
+      // Copia os 12 bytes de metadados (música, paleta, gráficos) do template para C0:0F39
+      const metaBase = 0x0D35 + h;
+      const tplMetaOff = metaBase + (tplStageId - 1) * 12;
+      const s44MetaOff = metaBase + (44 - 1) * 12;
+      for(let i = 0; i < 12; i++){
+        rom[s44MetaOff + i] = rom[tplMetaOff + i];
+      }
+      log.push('Engine: Fase 44 registrada na tabela C3:42B3 (Cenário e áudio clonados da Fase ' + tplStageId + ')');
+    }
+  }
+
+  // Restaura C0:0120 para o código original do jogo (STA $1F03 / CMP #$48)
+  rom[0x000120 + h] = 0x8D;
+  rom[0x000121 + h] = 0x03;
+  rom[0x000122 + h] = 0x1F;
+  rom[0x000123 + h] = 0xC9;
+  rom[0x000124 + h] = 0x48;
+
+  for(const s of st.stages){
+    const bytes=serialize(s.items);
+    const same=s.items.length===s.orig.length&&s.items.every((it,i)=>it.b.length===s.orig[i].length&&it.b.every((v,k)=>v===s.orig[i][k]));
+    if(same)continue;
+    const oldLen=s.end-s.start;
+    if(bytes.length<=oldLen){rom.set(bytes,s.start+h);log.push(`Área ${s.area}: gravada no lugar (${bytes.length} bytes)`);continue;}
+    const run=runs.find(r=>r.b-r.p>=bytes.length);
+    if(!run)throw new Error('Sem espaço livre na ROM para a área '+s.area+' ('+bytes.length+' bytes)');
+    const at=run.p;run.p+=bytes.length;
+    rom.set(bytes,at+h);
+    const v=0xC00000+at;const pa=s.ptrAt+h;
+    rom[pa]=v&255;rom[pa+1]=(v>>8)&255;rom[pa+2]=v>>16;
+    log.push(`Área ${s.area}: movida para C${(at>>16).toString(16).toUpperCase()}:${(at&0xFFFF).toString(16).toUpperCase().padStart(4,'0')} (${bytes.length} bytes)`);
+  }
+  const c=fixChecksum(rom,h);log.push('Checksum: '+c.toString(16).toUpperCase().padStart(4,'0'));
+  return {rom,log};
+}
+
+// Campos do registro de 17 bytes
+const rec={
+  gate:r=>r[0],mode:r=>r[1],trig:r=>r[2]|r[3]<<8,type:r=>r[4],gfx:r=>r[5],item:r=>r[6],
+  hp:r=>r[7]|r[8]<<8,move:r=>r[9],pos:r=>r[10],x:r=>(r[11]|r[12]<<8)<<16>>16,y:r=>(r[13]|r[14]<<8)<<16>>16,z:r=>(r[15]|r[16]<<8)<<16>>16
+};
+function setW(r,i,v){v&=0xFFFF;r[i]=v&255;r[i+1]=v>>8;}
+
+function enemyColor(type){
+  const t = type & 0x3F;
+  if(t===6||t===7) return '#d32f2f';
+  if(t===8||t===9||t===10) return '#558b2f';
+  if(t===14||t===19) return '#e91e63';
+  if(t===5) return '#8d6e63';
+  if(t===6) return '#9c27b0';
+  if(t===11||t===17||t===18) return '#1976d2';
+  if(t>=20&&t<=24) return '#f59e0b';
+  if(t>=27&&t<=31) return '#78716c';
+  return '#3b82f6';
+}
+
+function enemyEmoji(type){
+  const t = type & 0x3F;
+  if(t>=27&&t<=31) return '📦';
+  if(t>=20&&t<=24) return '👑';
+  if(t===6) return '💃';
+  if(t===14||t===19) return '🍔';
+  if(t===7) return '🥊';
+  return '🥋';
+}
+
+
+// ===== Banco de Sprites Autênticos (PNG e GIF de img/enemies/) =====
+const ENEMY_SPRITE_FILES = {
+  // Round 1 palette (Base 0x00)
+  5: 'img/enemies/billybrown body.png',
+  6: 'img/enemies/MAY purple.png',
+  7: 'img/enemies/andore red.png',
+  8: 'img/enemies/dirk olive clothes.png',
+  9: 'img/enemies/hunter orange.png',
+  10: 'img/enemies/G organe clothes.png',
+  11: 'img/enemies/JOE black.png',
+  14: 'img/enemies/fat jack pink sweater.png',
+  15: 'img/enemies/fritz.png',
+  16: 'img/enemies/RAY gray.png',
+  17: 'img/enemies/RICK black clothes.png',
+  18: 'img/enemies/johnny blue.png',
+  19: 'img/enemies/arby redbrick.png',
+  20: 'img/enemies/dave.gif',
+  21: 'img/enemies/callman.gif',
+  22: 'img/enemies/caine.png',
+  23: 'img/enemies/drake.png',
+  24: 'img/enemies/wong.png',
+  25: 'img/enemies/Stray.png',
+  26: 'img/enemies/black_stand.gif',
+
+  // Round 2 palette (+0x40 = 64)
+  69: 'img/enemies/billy white body.png',
+  70: 'img/enemies/MAY orange.png',
+  71: 'img/enemies/andore brown.png',
+  72: 'img/enemies/dirk green body.png',
+  73: 'img/enemies/hunter green.png',
+  74: 'img/enemies/G gray clothe.png',
+  75: 'img/enemies/JOE pink.png',
+  78: 'img/enemies/fat jack red sweater.png',
+  79: 'img/enemies/fritz.png',
+  80: 'img/enemies/RAY orange.png',
+  81: 'img/enemies/RICK green body.png',
+  82: 'img/enemies/johnny brown.png',
+  83: 'img/enemies/arby red.png',
+  84: 'img/enemies/dave.gif',
+  85: 'img/enemies/callman.gif',
+  86: 'img/enemies/caine.png',
+  87: 'img/enemies/drake.png',
+  88: 'img/enemies/wong.png',
+  89: 'img/enemies/Stray.png',
+  90: 'img/enemies/black_stand.gif',
+
+  // Round 3 palette (+0x80 = 128)
+  133: 'img/enemies/billy orange clolthe.png',
+  134: 'img/enemies/MAY gray.png',
+  135: 'img/enemies/andore green.png',
+  136: 'img/enemies/dirk olivedrab.png',
+  137: 'img/enemies/hunter blue.png',
+  138: 'img/enemies/G green clothe.png',
+  139: 'img/enemies/JOE darkgreen.png',
+  142: 'img/enemies/fat jack black sweater.png',
+  143: 'img/enemies/fritz.png',
+  144: 'img/enemies/RAY gray.png',
+  145: 'img/enemies/RICK green clothe.png',
+  146: 'img/enemies/johnny gray.png',
+  147: 'img/enemies/arby blue.png',
+  148: 'img/enemies/dave.gif',
+  149: 'img/enemies/callman.gif',
+  150: 'img/enemies/caine.png',
+  151: 'img/enemies/drake.png',
+  152: 'img/enemies/wong.png',
+  153: 'img/enemies/Stray.png',
+  154: 'img/enemies/black_stand.gif',
+
+  // Round 4/5/6 palette (+0xC0 = 192)
+  197: 'img/enemies/billy green clothe.png',
+  198: 'img/enemies/MAY blue.png',
+  199: 'img/enemies/andore blue.png',
+  200: 'img/enemies/dirk blue clothes.png',
+  201: 'img/enemies/hunter gray.png',
+  202: 'img/enemies/G darkgray clothe.png',
+  203: 'img/enemies/JOE green.png',
+  206: 'img/enemies/fat jack blue clothes.png',
+  207: 'img/enemies/fritz.png',
+  208: 'img/enemies/RAY darkgreen.png',
+  209: 'img/enemies/RICK blue clothes.png',
+  210: 'img/enemies/johnny olive.png',
+  211: 'img/enemies/arby green.png',
+  212: 'img/enemies/dave.gif',
+  213: 'img/enemies/callman.gif',
+  214: 'img/enemies/caine.png',
+  215: 'img/enemies/drake.png',
+  216: 'img/enemies/wong.png',
+  217: 'img/enemies/Stray.png',
+  218: 'img/enemies/black_stand.gif'
+};
+
+const ENEMY_SPRITE_DIMS = {
+  "andore blue.png": [50, 104],
+  "andore brown.png": [50, 104],
+  "andore green.png": [50, 103],
+  "andore red.png": [50, 104],
+  "arby blue.png": [55, 80],
+  "arby green.png": [55, 80],
+  "arby red.png": [55, 80],
+  "arby redbrick.png": [55, 80],
+  "billy green clothe.png": [31, 85],
+  "billy orange clolthe.png": [31, 85],
+  "billy white body.png": [31, 84],
+  "billybrown body.png": [31, 84],
+  "black_stand.gif": [103, 109],
+  "caine.png": [61, 96],
+  "callman.gif": [67, 103],
+  "dave.gif": [60, 101],
+  "dirk blue clothes.png": [70, 88],
+  "dirk green body.png": [62, 89],
+  "dirk olive clothes.png": [62, 89],
+  "dirk olivedrab.png": [62, 89],
+  "drake.png": [86, 98],
+  "fat jack black sweater.png": [55, 81],
+  "fat jack blue clothes.png": [55, 81],
+  "fat jack pink sweater.png": [64, 80],
+  "fat jack red sweater.png": [64, 80],
+  "fritz.png": [41, 70],
+  "G darkgray clothe.png": [42, 77],
+  "G gray clothe.png": [42, 78],
+  "G green clothe.png": [42, 77],
+  "G organe clothes.png": [40, 78],
+  "hunter blue.png": [40, 90],
+  "hunter gray.png": [40, 91],
+  "hunter green.png": [42, 91],
+  "hunter orange.png": [42, 91],
+  "JOE black.png": [41, 61],
+  "JOE darkgreen.png": [47, 58],
+  "JOE green.png": [41, 61],
+  "JOE pink.png": [41, 61],
+  "johnny blue.png": [33, 80],
+  "johnny brown.png": [33, 80],
+  "johnny gray.png": [33, 79],
+  "johnny olive.png": [33, 80],
+  "MAY blue.png": [43, 85],
+  "MAY gray.png": [42, 85],
+  "MAY orange.png": [42, 85],
+  "MAY purple.png": [43, 85],
+  "RAY darkgreen.png": [31, 85],
+  "RAY gray.png": [31, 85],
+  "RAY orange.png": [31, 85],
+  "RICK black clothes.png": [70, 90],
+  "RICK blue clothes.png": [62, 91],
+  "RICK green body.png": [70, 90],
+  "RICK green clothe.png": [62, 91],
+  "Stray.png": [65, 97],
+  "wong.png": [58, 100]
+};
+
+const STAGE_BOSSES = {
+  3: { id: 20, name: 'DAVE', file: 'img/enemies/dave.gif', desc: 'Chefe Policial de Metro City (Round 1)' },
+  6: { id: 21, name: 'CALLMAN', file: 'img/enemies/callman.gif', desc: 'Chefe dos Telhados / Back Alley (Round 2)' },
+  7: { id: 21, name: 'CALLMAN', file: 'img/enemies/callman.gif', desc: 'Chefe do Club Capcom / Bar Secreto (Round 2)' },
+  12: { id: 22, name: 'CAINE', file: 'img/enemies/caine.png', desc: 'Chefe do Teto do Ônibus (Round 3)' },
+  17: { id: 23, name: 'DRAKE', file: 'img/enemies/drake.png', desc: 'Chefe do Front Deck do Navio (Round 4A)' },
+  22: { id: 24, name: 'WONG', file: 'img/enemies/wong.png', desc: 'Chefe da Cozinha de Chinatown (Round 4B)' },
+  27: { id: 24, name: 'WONG', file: 'img/enemies/wong.png', desc: 'Subchefe da Cozinha da Fábrica (Round 5)' },
+  34: { id: 25, name: 'STRAY', file: 'img/enemies/Stray.png', desc: 'Chefe do Guindaste da Fábrica (Round 5)' },
+  42: { id: 26, name: 'BLACK', file: 'img/enemies/black_stand.gif', desc: 'Líder da Skull Cross / Chefe Final (Round 6)' }
+};
+
+function getEnemySpriteImg(type){
+  if(ENEMY_SPRITE_FILES[type]) return ENEMY_SPRITE_FILES[type];
+  const baseT = type & 0x3F;
+  if(ENEMY_SPRITE_FILES[baseT]) return ENEMY_SPRITE_FILES[baseT];
+  return null;
+}
+
+function getEnemyVisualHtml(type, zoom){
+  const file = getEnemySpriteImg(type);
+  if(file){
+    const baseName = file.replace('img/enemies/', '');
+    const dims = ENEMY_SPRITE_DIMS[baseName] || [45, 85];
+    const w = Math.round(dims[0] * zoom);
+    const h = Math.round(dims[1] * zoom);
+    return `<img src="${encodeURI(file)}" class="token-sprite-img" style="width:${w}px;height:${h}px;" alt="" draggable="false">`;
+  }
+  const t = type & 0x3F;
+  if(t === 27) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">🪣</span>`;
+  if(t === 28) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">🪴</span>`;
+  if(t === 29) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">📦</span>`;
+  if(t === 30) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">🏺</span>`;
+  if(t === 31) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">🛢️</span>`;
+  if(t === 43) return `<span style="font-size:${Math.round(26*zoom)}px;line-height:1">🔥🛢️</span>`;
+  return `<span style="font-size:${Math.round(22*zoom)}px;line-height:1">🥋</span>`;
+}
+
+function getEnemyVisualTableHtml(type){
+  const file = getEnemySpriteImg(type);
+  if(file){
+    return `<img src="${encodeURI(file)}" class="table-sprite-thumb" style="height:24px;width:auto;image-rendering:pixelated;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8));" alt="">`;
+  }
+  const t = type & 0x3F;
+  if(t === 27) return '<span style="font-size:16px;">🪣</span>';
+  if(t === 28) return '<span style="font-size:16px;">🪴</span>';
+  if(t === 29) return '<span style="font-size:16px;">📦</span>';
+  if(t === 30) return '<span style="font-size:16px;">🏺</span>';
+  if(t === 31) return '<span style="font-size:16px;">🛢️</span>';
+  if(t === 43) return '<span style="font-size:16px;">🔥🛢️</span>';
+  return '<span style="font-size:14px;">🥋</span>';
+}
+
+function getEnemyAvatarSvg(type){
+  return getEnemyVisualHtml(type, 1);
+}
+
+// ===== Renderizador de Cenário Pixel-Art do Jogo (Canvas) =====
+const STAGE_BG_IMAGES = {
+  1: 'img/round_1_fase_1.png',
+  2: 'img/round_1_fase_2.png',
+  3: 'img/round_1_fase_3_chefe.png',
+  4: 'img/round_2_main_4.png',
+  5: 'img/round_2_main_5.png',
+  6: 'img/round_2_main_6.png',
+  7: 'img/round_2_main_7.png',
+  8: 'img/round_3_main_8.png',
+  9: 'img/round_3_main_9.png',
+  10: 'img/round_4a_main_10.png',
+  11: 'img/round_3_main_11.png',
+  12: 'img/round_3_main_12.png',
+  13: 'img/round_4a_main_13.png',
+  14: 'img/round_4a_main_14.png',
+  15: 'img/round_4a_main_15.png',
+  16: 'img/round_4a_main_16.png',
+  17: 'img/round_4a_main_17.png',
+  18: 'img/bonus_1-main_18.png',
+  19: 'img/round_4b_main_19.png',
+  20: 'img/round_4b_main_20.png',
+  21: 'img/round_4b_main_21.png',
+  22: 'img/round_4b_main_22.png',
+  23: 'img/round_4b_main_23.png',
+  24: 'img/round_4b_main_24.png',
+  25: 'img/round_4b_main_25.png',
+  26: 'img/round_4b_main_26.png',
+  27: 'img/round_4b_main_27.png',
+  28: 'img/round_5_main_28.png',
+  29: 'img/round_5_main_29.png',
+  30: 'img/round_5_main_30.png',
+  31: 'img/round_5_main_31.png',
+  32: 'img/round_5_main_32.png',
+  33: 'img/round_5_main_33.png',
+  34: 'img/round_5_main_34.png',
+  35: 'img/bonus_2_main_35.png',
+  36: 'img/round_5_main_36.png',
+  37: 'img/round_5_main_37.png',
+  38: 'img/round_5_main_38.png',
+  39: 'img/round_5_main_39.png',
+  40: 'img/round_5_main_40.png',
+  41: 'img/round_5_main_41.png',
+  42: 'img/round_5_main_42.png'
+};
+
+const STAGE_BG_WIDTHS = {
+  1: 1024,
+  2: 1023,
+  3: 768,
+  4: 768,
+  5: 1023,
+  6: 768,
+  7: 768,
+  8: 768,
+  9: 512,
+  10: 384,
+  11: 768,
+  12: 512,
+  13: 712,
+  14: 896,
+  15: 512,
+  16: 512,
+  17: 464,
+  18: 436,
+  19: 768,
+  20: 1017,
+  21: 768,
+  22: 512,
+  23: 1006,
+  24: 768,
+  25: 1017,
+  26: 768,
+  27: 512,
+  28: 730,
+  29: 768,
+  30: 256,
+  31: 256,
+  32: 1024,
+  33: 768,
+  34: 1280,
+  35: 512,
+  36: 1104,
+  37: 1024,
+  38: 328,
+  39: 328,
+  40: 256,
+  41: 1216,
+  42: 767
+};
+const STAGE_BG_CACHE = {};
+
+function getStageBgImage(stageId, onLoaded){
+  if(typeof Image === 'undefined') return null;
+  let targetId = stageId;
+  if(stageId === 44 && ST && ST.stages){
+    const s44 = ST.stages.find(s => s.id === 44);
+    if(s44 && s44.templateStage) targetId = s44.templateStage;
+  }
+  const src = STAGE_BG_IMAGES[targetId];
+  if(!src) return null;
+  if(!STAGE_BG_CACHE[targetId]){
+    const img = new Image();
+    img.onload = () => {
+      if(typeof onLoaded === 'function') onLoaded();
+    };
+    img.src = src;
+    STAGE_BG_CACHE[targetId] = img;
+  }
+  return STAGE_BG_CACHE[targetId];
+}
+
+function drawStageBackground(canvas, stage, totalW, totalH, zoom){
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(!ctx) return;
+
+  canvas.width = totalW;
+  canvas.height = totalH;
+
+  ctx.save();
+  ctx.scale(zoom, zoom);
+  const w = totalW / zoom;
+  const h = totalH / zoom;
+
+  const stageId = (typeof stage === 'number') ? stage : (stage ? stage.id : 1);
+  const tplStageId = (stage && stage.templateStage) ? stage.templateStage : stageId;
+  const targetImgId = STAGE_BG_IMAGES[tplStageId] ? tplStageId : (STAGE_BG_IMAGES[stageId] ? stageId : null);
+
+  const bgImg = targetImgId ? getStageBgImage(targetImgId, () => render()) : null;
+
+  if(bgImg && bgImg.complete && bgImg.naturalWidth > 0){
+    const isPano = (BOARD_VIEW_MODE === 'pano');
+    const imgW = STAGE_BG_WIDTHS[targetImgId] || bgImg.naturalWidth || 1024;
+    const imgH = Math.min(bgImg.naturalHeight || 190, 190);
+
+    // SNES Top HUD area (Y: 0..34)
+    ctx.fillStyle = '#080a10';
+    ctx.fillRect(0, 0, w, 34);
+    ctx.strokeStyle = '#1e2436';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, 34); ctx.lineTo(w, 34); ctx.stroke();
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('SNES HUD / STATUS BAR [Y: 0..34 px]', 14, 21);
+
+    if(stageId === 44){
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 9.5px sans-serif';
+      ctx.fillText('⚡ SALA SECRETA 44 (CLONADA DA FASE ' + targetImgId + ')', 230, 21);
+    }
+
+    if(isPano){
+      ctx.drawImage(bgImg, 0, 34, imgW, 190);
+      if(w > imgW){
+        ctx.fillStyle = '#06070a';
+        ctx.fillRect(imgW, 34, w - imgW, 190);
+      }
+    } else {
+      let camX = 0;
+      if(ACTIVE_WAVE !== 'all'){
+        const wNum = +ACTIVE_WAVE;
+        let cW = 0;
+        if(stage && stage.items){
+          for(const it of stage.items){
+            if(it.t === 'cmd') cW++;
+            else if(cW === wNum){ camX = rec.trig(it.b) / 16; break; }
+          }
+        }
+      } else if(SELECTED_IDX != null && stage && stage.items && stage.items[SELECTED_IDX] && stage.items[SELECTED_IDX].t === 'rec'){
+        camX = rec.trig(stage.items[SELECTED_IDX].b) / 16;
+      }
+      camX = Math.max(0, Math.min(camX, Math.max(0, imgW - 256)));
+
+      ctx.fillStyle = 'rgba(6, 8, 12, 0.9)';
+      ctx.fillRect(0, 34, 70, 190);
+      ctx.fillRect(326, 34, 70, 190);
+
+      ctx.drawImage(bgImg, camX, 0, 256, imgH, 70, 34, 256, 190);
+    }
+
+    ctx.restore();
+    return;
+  }
+
+  const isStage1 = (stageId === 1);
+  const isBar = (stageId === 7 || (stageId === 44 && (tplStageId === 7 || !tplStageId)));
+  const isDave = (stageId === 3 || (stageId === 44 && tplStageId === 3));
+  const isChina = (stageId === 11 || (stageId === 44 && tplStageId === 11));
+  const isPrison = (stageId === 2 || (stageId === 44 && tplStageId === 2));
+  const isPort = (stageId === 4 || (stageId === 44 && tplStageId === 4));
+
+  if(isBar) {
+    const cfg = (stage && stage.id === 44 && stage.bgCustom && stage.bgCustom.type === 'bar')
+      ? stage.bgCustom
+      : {
+          counterX: 520, counterW: 500,
+          neonText: (stageId === 44 ? '★ CREEP EATS · SALA SECRETA 44 ★' : '★ CREEP EATS · VIP LOUNGE ★'),
+          neonColor: '#f43f5e', neonBorder: '#ec4899', neonX: 160,
+          subNeonText: 'COLD BEER', subNeonX: 440,
+          dartboardX: 110, showDartboard: true,
+          shelvesStart: 10, shelvesEnd: w, stoolSpacing: 75, floorTheme: 'wood'
+        };
+
+    // Parede de madeira escura com iluminação âmbar
+    const wallGrad = ctx.createLinearGradient(0, 0, 0, 150);
+    wallGrad.addColorStop(0, '#150c07');
+    wallGrad.addColorStop(1, '#2c180e');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(0, 0, w, 150);
+
+    // Painéis de madeira e boiserie na parede
+    ctx.strokeStyle = '#180d07';
+    ctx.lineWidth = 2;
+    for(let px = 0; px < w; px += 64){
+      ctx.strokeRect(px + 4, 15, 56, 120);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(px + 8, 19, 48, 112);
+    }
+
+    // Prateleiras de bebidas ao fundo
+    const shStart = Math.max(0, cfg.shelvesStart || 0);
+    const shEnd = Math.min(w, cfg.shelvesEnd || w);
+    for(let sy of [42, 78, 114]){
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(shStart, sy, shEnd - shStart, 5);
+      ctx.fillStyle = '#1c0a02';
+      ctx.fillRect(shStart, sy + 5, shEnd - shStart, 2);
+
+      // Garrafas coloridas (Whisky, Vinho, Cerveja, Licor)
+      const bottleCols = ['#ef4444', '#10b981', '#f59e0b', '#38bdf8', '#a855f7', '#fbbf24', '#06b6d4'];
+      for(let bx = shStart + 12; bx < shEnd - 16; bx += 14){
+        if((bx + sy) % 7 === 0) continue;
+        const col = bottleCols[(bx + sy) % bottleCols.length];
+        const bH = 14 + ((bx * 3) % 8);
+        ctx.fillStyle = col;
+        ctx.fillRect(bx, sy - bH, 7, bH);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(bx + 2, sy - bH - 3, 3, 3);
+      }
+    }
+
+    // Balcão de atendimento corrido
+    const cX = cfg.counterX || 520;
+    const cW = cfg.counterW || 500;
+    ctx.fillStyle = '#3b1706';
+    ctx.fillRect(cX, 115, cW, 32);
+    ctx.fillStyle = '#5c2409';
+    ctx.fillRect(cX - 2, 112, cW + 4, 5);
+    ctx.fillStyle = '#ca8a04';
+    ctx.fillRect(cX, 142, cW, 3);
+
+    // Banquetes de Bar com assento vermelho acolchoado
+    const stSpacing = cfg.stoolSpacing || 75;
+    for(let stX = cX + 30; stX <= cX + cW - 20; stX += stSpacing){
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath(); ctx.ellipse(stX, 115, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#64748b'; ctx.fillRect(stX - 2, 121, 4, 25);
+      ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.ellipse(stX, 146, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Letreiro Neon Principal no Bar
+    const nX = cfg.neonX || 160;
+    const nW = Math.max(220, (cfg.neonText ? cfg.neonText.length * 8.5 + 24 : 240));
+    ctx.fillStyle = '#0f0502';
+    ctx.fillRect(nX, 20, nW, 26);
+    ctx.strokeStyle = cfg.neonBorder || '#ec4899'; ctx.lineWidth = 2;
+    ctx.strokeRect(nX, 20, nW, 26);
+    ctx.fillStyle = cfg.neonColor || '#f43f5e';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(cfg.neonText || '★ CREEP EATS ★', nX + 12, 37);
+
+    // Neon secundário "COLD BEER"
+    if(cfg.subNeonText){
+      const sX = cfg.subNeonX || 440;
+      const sW = Math.max(70, cfg.subNeonText.length * 8 + 20);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(sX, 24, sW, 18);
+      ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(sX, 24, sW, 18);
+      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 8px sans-serif';
+      ctx.fillText(cfg.subNeonText, sX + 10, 36);
+    }
+
+    // Alvo de dardos (Dartboard) na parede
+    if(cfg.showDartboard !== false){
+      const dX = cfg.dartboardX || 110;
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.arc(dX, 65, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = '#dc2626'; ctx.strokeRect(dX - 8, 57, 16, 16);
+      ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(dX, 65, 3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Lustres pendentes com cone de luz quente
+    const barLamps = cfg.lamps || [120, 300, 480, 660, 840, 1020, 1200];
+    barLamps.forEach(lx => {
+      if(lx > w) return;
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(lx - 1, 0, 2, 28);
+      ctx.beginPath(); ctx.arc(lx, 30, 8, Math.PI, 0); ctx.fill();
+      const glow = ctx.createRadialGradient(lx, 32, 2, lx, 140, 65);
+      glow.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
+      glow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.moveTo(lx, 32); ctx.lineTo(lx - 55, 150); ctx.lineTo(lx + 55, 150); ctx.closePath(); ctx.fill();
+    });
+
+    // Piso (Floor)
+    if(cfg.floorTheme === 'tile'){
+      ctx.fillStyle = '#18181b';
+      ctx.fillRect(0, 150, w, 74);
+      for(let gx = 0; gx < w; gx += 24){
+        for(let gy = 150; gy < 224; gy += 16){
+          if((gx/24 + gy/16) % 2 === 0){
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(gx, gy, 24, 16);
+          }
+          ctx.strokeStyle = '#09090b'; ctx.lineWidth = 1;
+          ctx.strokeRect(gx, gy, 24, 16);
+        }
+      }
+    } else if(cfg.floorTheme === 'dark'){
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 150, w, 74);
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5;
+      for(let py = 150; py < 224; py += 12){
+        ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = '#221109';
+      ctx.fillRect(0, 150, w, 74);
+      ctx.strokeStyle = '#140a05'; ctx.lineWidth = 1;
+      for(let py = 150; py < 224; py += 10){
+        ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+      }
+      for(let px = 0; px < w; px += 45){
+        for(let py = 150; py < 224; py += 20){
+          ctx.beginPath(); ctx.moveTo(px + ((py % 20 === 0) ? 0 : 22), py); ctx.lineTo(px + ((py % 20 === 0) ? 0 : 22), py + 10); ctx.stroke();
+        }
+      }
+    }
+
+    if(stageId === 44){
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+      ctx.fillRect(0, 0, w, 224);
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('⚡ SALA SECRETA ATIVA (FASE 44) · CENÁRIO CUSTOMIZADO', 14, 14);
+    }
+
+  } else if(isDave) {
+    const cfg = (stage && stage.id === 44 && stage.bgCustom && stage.bgCustom.type === 'dave')
+      ? stage.bgCustom
+      : {
+          windowX: 100, windowW: 568, deskX: 320, deskW: 220, lampX: 340,
+          carpetColor: '#450a0a', wallColor: '#26120b', titleText: 'GABINETE EXECUTIVO'
+        };
+
+    const winX = cfg.windowX || 100;
+    const winW = cfg.windowW || (w - 200);
+
+    const nightSky = ctx.createLinearGradient(0, 0, 0, 110);
+    nightSky.addColorStop(0, '#020617'); nightSky.addColorStop(1, '#0f172a');
+    ctx.fillStyle = nightSky; ctx.fillRect(winX, 15, winW, 95);
+    ctx.fillStyle = '#1e293b';
+    for(let bx = winX + 20; bx < winX + winW - 20; bx += 35){
+      const bH = 30 + ((bx * 7) % 45);
+      ctx.fillRect(bx, 110 - bH, 24, bH);
+      ctx.fillStyle = '#fef08a';
+      if(bx % 2 === 0) ctx.fillRect(bx + 6, 110 - bH + 8, 3, 3);
+      ctx.fillStyle = '#1e293b';
+    }
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
+    ctx.strokeRect(winX, 15, winW, 95);
+
+    ctx.fillStyle = cfg.wallColor || '#26120b';
+    ctx.fillRect(0, 0, winX, 150);
+    ctx.fillRect(winX + winW, 0, w - (winX + winW), 150);
+
+    const dX = cfg.deskX || 320;
+    const dW = cfg.deskW || 220;
+    ctx.fillStyle = '#451a03'; ctx.fillRect(dX, 90, dW, 40);
+    ctx.fillStyle = '#5c2409'; ctx.fillRect(dX - 2, 88, dW + 4, 4);
+
+    const lpX = cfg.lampX || (dX + 20);
+    ctx.fillStyle = '#15803d'; ctx.fillRect(lpX, 85, 18, 10);
+    ctx.fillStyle = '#ca8a04'; ctx.fillRect(lpX + 7, 95, 4, 5);
+
+    ctx.fillStyle = cfg.carpetColor || '#450a0a'; ctx.fillRect(0, 150, w, 74);
+    ctx.strokeStyle = '#7f1d1d'; ctx.lineWidth = 1;
+    for(let cy = 150; cy < 224; cy += 8){
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+    }
+    if(stageId === 44){
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(cfg.titleText || '⚡ SALA SECRETA ATIVA (FASE 44) · GABINETE DO CHEFE DAVE', 14, 14);
+    }
+
+  } else if(isChina) {
+    // ===== CENÁRIO: RESTAURANTE CHINÊS (FASE 11) =====
+    ctx.fillStyle = '#7f1d1d'; ctx.fillRect(0, 0, w, 150);
+    for(let px = 40; px < w; px += 180){
+      ctx.fillStyle = '#991b1b'; ctx.fillRect(px, 15, 24, 135);
+      ctx.fillStyle = '#ca8a04'; ctx.fillRect(px - 2, 15, 28, 6); ctx.fillRect(px - 2, 144, 28, 6);
+    }
+    for(let lx = 120; lx < w; lx += 180){
+      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.ellipse(lx, 45, 10, 14, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fef08a'; ctx.fillRect(lx - 3, 42, 6, 6);
+    }
+    ctx.fillStyle = '#1c1917'; ctx.fillRect(0, 150, w, 74);
+    ctx.strokeStyle = '#44403c'; ctx.lineWidth = 1;
+    for(let gx = 0; gx < w; gx += 20){
+      for(let gy = 150; gy < 224; gy += 15){
+        if((gx + gy) % 30 === 0) ctx.fillStyle = '#292524'; else ctx.fillStyle = '#1c1917';
+        ctx.fillRect(gx, gy, 20, 15); ctx.strokeRect(gx, gy, 20, 15);
+      }
+    }
+    if(stageId === 44){
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('⚡ SALA SECRETA ATIVA (FASE 44) · RESTAURANTE CHINÊS', 14, 14);
+    }
+
+  } else if(isPrison) {
+    // ===== CENÁRIO: PRISÃO / CELAS (FASE 2) =====
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, w, 150);
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1;
+    for(let by = 15; by < 150; by += 12){
+      ctx.beginPath(); ctx.moveTo(0, by); ctx.lineTo(w, by); ctx.stroke();
+    }
+    ctx.fillStyle = '#475569';
+    for(let bx = 60; bx < w; bx += 25){
+      ctx.fillRect(bx, 20, 4, 130);
+    }
+    ctx.fillStyle = '#334155'; ctx.fillRect(0, 150, w, 74);
+    if(stageId === 44){
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('⚡ SALA SECRETA ATIVA (FASE 44) · CORREDOR DA PRISÃO', 14, 14);
+    }
+
+  } else if(isPort) {
+    // ===== CENÁRIO: CAIS / PORTO (FASE 4) =====
+    const waterGrad = ctx.createLinearGradient(0, 0, 0, 140);
+    waterGrad.addColorStop(0, '#030712'); waterGrad.addColorStop(1, '#0c4a6e');
+    ctx.fillStyle = waterGrad; ctx.fillRect(0, 0, w, 140);
+    ctx.fillStyle = '#075985';
+    for(let nx = 80; nx < w; nx += 220){
+      ctx.fillRect(nx, 90, 110, 25);
+      ctx.fillRect(nx + 35, 55, 12, 35);
+    }
+    ctx.fillStyle = '#3f2212'; ctx.fillRect(0, 140, w, 84);
+    ctx.strokeStyle = '#221108'; ctx.lineWidth = 1.5;
+    for(let py = 140; py < 224; py += 12){
+      ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+    }
+    if(stageId === 44){
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('⚡ SALA SECRETA ATIVA (FASE 44) · CAIS DO PORTO', 14, 14);
+    }
+
+  } else {
+    // ===== CENÁRIO EXTERIOR: FASE 1 OU URBANO =====
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, 75);
+    skyGrad.addColorStop(0, '#090d1c');
+    skyGrad.addColorStop(1, '#161d36');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, 75);
+
+    ctx.fillStyle = '#0f1426';
+    for(let bx = 0; bx < w; bx += 40){
+      const bH = 22 + ((bx * 7) % 35);
+      const bW = 24 + ((bx * 13) % 18);
+      ctx.fillRect(bx, 75 - bH, bW, bH);
+      ctx.fillStyle = ((bx % 3 === 0) ? '#f59e0b' : '#38bdf8');
+      for(let wy = 75 - bH + 4; wy < 70; wy += 6){
+        if((bx + wy) % 5 === 0) ctx.fillRect(bx + 4, wy, 2, 2);
+        if((bx + wy) % 7 === 0) ctx.fillRect(bx + 12, wy, 2, 2);
+      }
+      ctx.fillStyle = '#0f1426';
+    }
+
+    if(isStage1){
+      // SEÇÃO A: 0 a 280 px (Delegacia de Metro City)
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 15, 280, 120);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      for(let y = 20; y < 135; y += 8){
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(280, y); ctx.stroke();
+      }
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(40, 25, 180, 20);
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(40, 25, 180, 20);
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('METRO POLICE DEPT · PRECINCT 3', 46, 38);
+
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath(); ctx.arc(130, 20, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.4)';
+      ctx.beginPath(); ctx.arc(130, 20, 14, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(80, 60, 100, 75);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(80, 60, 100, 75);
+      ctx.strokeRect(80, 60, 50, 75);
+      ctx.strokeRect(130, 60, 50, 75);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.fillRect(84, 65, 42, 45);
+      ctx.fillRect(134, 65, 42, 45);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(195, 110, 75, 25);
+      ctx.fillRect(205, 95, 55, 16);
+      ctx.fillStyle = '#ef4444'; ctx.fillRect(228, 91, 5, 4);
+      ctx.fillStyle = '#3b82f6'; ctx.fillRect(233, 91, 5, 4);
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 7px sans-serif'; ctx.fillText('POLICE', 215, 122);
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(210, 135, 7, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(255, 135, 7, 0, Math.PI*2); ctx.fill();
+
+      // SEÇÃO B: 280 a 520 px (Chinatown Pagode & Restaurante)
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(280, 20, 240, 115);
+      ctx.fillStyle = '#450a0a';
+      ctx.beginPath();
+      ctx.moveTo(270, 25); ctx.lineTo(530, 25); ctx.lineTo(515, 12); ctx.lineTo(285, 12);
+      ctx.closePath(); ctx.fill();
+
+      for(let wx = 295; wx < 500; wx += 45){
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(wx, 40, 24, 32);
+        ctx.strokeStyle = '#450a0a';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(wx, 40, 24, 32);
+        ctx.beginPath(); ctx.moveTo(wx + 12, 40); ctx.lineTo(wx + 12, 72); ctx.stroke();
+      }
+
+      for(let lx = 310; lx < 510; lx += 60){
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(lx, 25); ctx.lineTo(lx, 35); ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.ellipse(lx, 42, 6, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fef08a'; ctx.fillRect(lx - 2, 40, 4, 4);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+        ctx.beginPath(); ctx.arc(lx, 42, 16, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // SEÇÃO C: 520 a 720 px (BAR "CREEP EATS" - A PORTA SECRETA!)
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(520, 25, 200, 110);
+      ctx.strokeStyle = '#44403c';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(520, 25, 200, 110);
+
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(540, 30, 160, 24);
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(540, 30, 160, 24);
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('★ CREEP EATS ★', 562, 46);
+      ctx.fillStyle = '#a855f7';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.fillText('BAR & RESTAURANT', 576, 52);
+
+      // === A PORTA DO BAR (X: 550..640) ===
+      ctx.fillStyle = '#0c0a09';
+      ctx.fillRect(550, 58, 90, 77);
+      ctx.strokeStyle = '#78716c';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(550, 58, 90, 77);
+
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(554, 62, 82, 73);
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for(let sy = 65; sy < 135; sy += 5){
+        ctx.beginPath(); ctx.moveTo(554, sy); ctx.lineTo(636, sy); ctx.stroke();
+      }
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.ellipse(595, 95, 18, 12, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 7.5px sans-serif';
+      ctx.fillText('⚡ IMPACTO', 574, 98);
+
+      for(let cx = 554; cx < 636; cx += 10){
+        ctx.fillStyle = (cx % 20 === 0) ? '#eab308' : '#000';
+        ctx.fillRect(cx, 130, 10, 5);
+      }
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(650, 65, 55, 50);
+      ctx.strokeStyle = '#78716c';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(650, 65, 55, 50);
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+      ctx.fillRect(652, 67, 51, 46);
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      for(let by = 70; by < 114; by += 4){
+        ctx.beginPath(); ctx.moveTo(652, by); ctx.lineTo(703, by); ctx.stroke();
+      }
+
+      // SEÇÃO D: 720 a 1280 px (Continuação da Rua)
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(720, 20, 560, 115);
+      for(let ax = 740; ax < 1240; ax += 120){
+        for(let sw = 0; sw < 70; sw += 14){
+          ctx.fillStyle = (sw % 28 === 0) ? '#16a34a' : '#f8fafc';
+          ctx.fillRect(ax + sw, 55, 14, 25);
+        }
+      }
+    } else {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 15, w, 120);
+      for(let bx = 20; bx < w; bx += 80){
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(bx, 40, 45, 60);
+        ctx.strokeStyle = '#475569';
+        ctx.strokeRect(bx, 40, 45, 60);
+      }
+    }
+
+    const lampXs = [40, 270, 510, 730, 980, 1220];
+    lampXs.forEach(lx => {
+      if(lx > w) return;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(lx - 2, 35, 4, 100);
+      ctx.beginPath(); ctx.arc(lx, 35, 6, 0, Math.PI * 2); ctx.fill();
+      const cone = ctx.createRadialGradient(lx, 40, 2, lx, 145, 60);
+      cone.addColorStop(0, 'rgba(253, 224, 71, 0.35)');
+      cone.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      ctx.fillStyle = cone;
+      ctx.beginPath();
+      ctx.moveTo(lx, 40); ctx.lineTo(lx - 45, 150); ctx.lineTo(lx + 45, 150);
+      ctx.closePath(); ctx.fill();
+    });
+
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(0, 135, w, 20);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    for(let sx = 0; sx < w; sx += 32){
+      ctx.beginPath(); ctx.moveTo(sx, 135); ctx.lineTo(sx - 10, 155); ctx.stroke();
+    }
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(0, 154, w, 2);
+
+    ctx.fillStyle = '#1e2430';
+    ctx.fillRect(0, 156, w, 68);
+    ctx.fillStyle = '#eab308';
+    for(let rx = 0; rx < w; rx += 50){
+      ctx.fillRect(rx, 188, 30, 3);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ===== Estado da Interface =====
+const $=s=>document.querySelector(s);
+let ROM=null,ST=null,CUR=0,NAME='ff3';
+let SELECTED_IDX=null;
+let ACTIVE_WAVE='all';
+let BOARD_ZOOM=1.5;
+let BOARD_VIEW_MODE='pano';
+let DRAGGING_DOOR=null;
+
+
+let CURRENT_LANG = 'en';
+
+const I18N = {
+  en: {
+    app_title: "FF3 Script & Visual Editor",
+    open_rom: "Open ROM…",
+    no_rom: "no ROM loaded",
+    slots4_label: "4 simultaneous enemies",
+    slots4_title: "Unlocks 4th enemy slot in all 3 spawners (5 is impossible: only 4 RAM pages $0700-$0A00 exist)",
+    p2vram_label: "use P2 VRAM (+6 units)",
+    p2vram_title: "Uses 96 VRAM tiles from Player 2 ($6600-$6BFF, 6 units = Gfx 3) as extra dedicated block, raising limit from 16 to 22 units without visual bugs",
+    allgates_label: "enable 2P in 1P",
+    allgates_title: "Bypasses Gate check ($1F11) in C0:70D1 so 2-Player exclusive enemies also spawn in 1-Player mode",
+    secret_door_label: "active secret door",
+    secret_door_title: "Active Secret Door Sensor: Pressing UP at the stage door triggers real-time teleport to Secret Room",
+    share_label: "share graphics (glitchy)",
+    share_title: "Legacy/experimental mode: shares VRAM among enemies of same type",
+    save_rom: "Save ROM",
+    download_ips: "Download IPS",
+    save_proj: "💾 Save Project (JSON)",
+    save_proj_title: "Save all stage changes (enemies, waves, doors, options) to a JSON file to resume later",
+    load_proj: "📂 Load Project (JSON)",
+    load_proj_title: "Load a previously saved project JSON file to restore your edits",
+    lang_btn: "🌐 EN",
+
+    // Sidebar
+    enemies_count: "{n} enemies",
+    doors_count: "{n} secret door(s)",
+    boss_tag: "Stage Boss: {name}",
+    btn_create_stage44: "✨ + Create Secret Room (Stage 44)",
+    btn_open_stage44: "✨ Open Stage 44 (Secret Room)",
+    btn_reclone_stage44: "🔄 Re-clone Base Stage for Stage 44",
+    mod_tag: "●",
+
+    // Secret Door Panel
+    secret_doors_title: "🚪 Active Secret Doors (Multi-Door):",
+    doors_registered: "{tot} door(s) registered in game · {stg} active in this stage",
+    no_doors: "No secret doors created. Click \"+ New Secret Door In This Stage\" to create one.",
+    btn_new_door: "+ New Secret Door In This Stage",
+    door_card_label: "Door #{idx}",
+    door_origin: "Stage Door:",
+    door_dest: "➔ Destination (Secret Room):",
+    door_exit: "➔ Clear Exit:",
+    btn_del_door: "🗑 Delete",
+    door_trigger_area: "On-screen Trigger Area:",
+    door_min_x: "X min:",
+    door_max_x: "X max:",
+    door_max_y: "Y ceil:",
+    door_marked_hint: "(✓ Marked on Stage Board below)",
+    door_other_stage_hint: "(Door configured for another stage)",
+    door_tag_label: "DOOR",
+
+    // Custom Stage 44 Banner
+    stage44_banner_title: "Custom Secret Room (Stage 44)",
+    stage44_banner_desc: "Scenario and audio cloned from: <b>{tpl}</b>",
+    btn_reclone_top: "🔄 Clone Another Stage for Stage 44",
+
+    // Boss Banner
+    stage_boss: "👑 STAGE BOSS: {name}",
+    boss_present: "Active in Arena (#{idx} · HP: {hp} · X:{x} Y:{y})",
+    boss_absent: "Not placed in this area",
+    btn_focus_boss: "🎯 Focus on Boss (#{idx})",
+    btn_insert_boss: "+ Insert {name} into Stage",
+
+    // Toolbar & Stage Canvas
+    wave: "Wave",
+    wave_filter: "Wave Filter:",
+    wave_all: "All",
+    zoom_label: "Zoom:",
+    controls_label: "Controls:",
+    control_drag: "Drag Enemies",
+    control_cam: "Camera Trigger (Dashed Line)",
+    btn_add_enemy: "+ Enemy",
+    btn_restore_stage: "↺ Restore Original Stage",
+    door_visual_btn: "+ New Secret Door (Click & Place)",
+    footer_note: "Each row is an enemy spawned by camera trigger. The game supports 4 simultaneous enemies with custom patch. ⚠ = VRAM exceeds {max} units.",
+
+    // Selection Control Bar
+    btn_left: "⬅ Left Entrance (-35px)",
+    btn_left_title: "Place enemy off-screen at left entrance (-35 px)",
+    btn_right: "➡ Right Entrance (290px)",
+    btn_right_title: "Place enemy off-screen at right entrance (290 px)",
+    btn_center: "🎯 Center (128px)",
+    btn_center_title: "Center horizontally on screen (128 px)",
+    btn_floor: "↕ Floor (184px)",
+    btn_floor_title: "Align vertical position to average floor height (184 px)",
+    btn_dup: "⧉ Duplicate",
+    btn_dup_title: "Duplicate selected enemy",
+    btn_del: "✕ Delete",
+    btn_del_title: "Delete selected enemy",
+
+    // Table Columns & Options
+    col_num: "#",
+    col_gate: "Gate",
+    col_trigger: "Trigger",
+    col_value: "Value",
+    col_sprite: "Sprite",
+    col_gfx: "Gfx",
+    col_item: "Item",
+    col_hp: "HP",
+    col_move: "Move",
+    col_pos: "Pos",
+    col_x: "X",
+    col_y: "Y",
+    col_z: "Z",
+    pos_rel: "cam-relative",
+    pos_abs: "absolute",
+    cmd_barrier: "Barrier / wave",
+    cmd_barrier_hint: "waits for enemies to finish entering",
+    cmd_raw: "Command FC (hex)",
+    gate_title: "0 = always; 1 = 2-Player only",
+    trig_title: "camera trigger position (1/16 px)",
+    gfx_title: "VRAM block size",
+    x_title: "px = value / 16",
+    wall_trap_title: "⚠️ Warning: Y outside floor range (155..215px)! Enemy stuck in wall. Click Floor button to fix.",
+
+    // Modal Clone
+    modal_title: "✨ Create New Secret Room (Stage 44)",
+    modal_title_reclone: "🔄 Clone Another Stage for Stage 44",
+    modal_desc: "Choose any of the <b>43 stages</b> in the game to serve as the visual base (graphics, color palettes, BGM) and combat arena:",
+    modal_base_label: "Base Stage to Clone:",
+    modal_chk_enemies: "Clone all original enemies from the chosen stage",
+    modal_enemies_desc: "If you replace the boss with a standard enemy (Billy, May, Dirk, Andore), the editor <b>automatically aligns floor and coordinates</b> so they never spawn stuck inside the wall!",
+    modal_chk_door: "Connect Prison Cell Door (Stage 2) to this room",
+    modal_door_desc: "Entering the prison cell door teleports to this new secret stage and, upon victory, leads straight to Boss Dave.",
+    modal_btn_cancel: "Cancel",
+    modal_btn_confirm: "✨ Confirm and Create",
+
+    // Logs & Alerts
+    alert_load_rom_first: "Please load a ROM first before creating Stage 44.",
+    alert_stage44_success: "✨ Stage 44 configured successfully!\n\nCloned stage: Stage {stg} ({name})\nTotal enemies: {cnt}",
+    alert_restore_stage_confirm: "Discard all enemy changes in this stage and restore original ROM script?",
+    alert_del_door_confirm: "Remove this secret door from the game?",
+    empty_title: "No Stage Selected",
+    empty_desc: "Open a compatible ROM (.sfc or .smc) to list all 42 game stages."
+  },
+  pt: {
+    app_title: "FF3 Script & Visual Editor",
+    open_rom: "Abrir ROM…",
+    no_rom: "nenhuma ROM carregada",
+    slots4_label: "4 inimigos simultâneos",
+    slots4_title: "Libera o 4º slot de inimigo nos 3 spawners (5 não é possível: só existem 4 páginas de RAM $0700-$0A00)",
+    p2vram_label: "usar VRAM P2 (+6 unid.)",
+    p2vram_title: "Usa os 96 tiles de VRAM do Player 2 ($6600-$6BFF, 6 unidades = Gfx 3) como bloco exclusivo extra, elevando o limite de 16 para 22 unidades sem bugs visuais",
+    allgates_label: "liberar 2P no 1P",
+    allgates_title: "Ignora a checagem de Gate ($1F11) em C0:70D1 para que inimigos de 2P também apareçam no modo 1P",
+    secret_door_label: "porta secreta ativa",
+    secret_door_title: "Sensor Ativo de Porta Secreta: Pressionar CIMA na porta da fase ativa o teletransporte em tempo real para a Sala Secreta",
+    share_label: "compartilhar gráficos (bugado)",
+    share_title: "Modo legado/experimental: compartilha VRAM entre inimigos do mesmo tipo",
+    save_rom: "Salvar ROM",
+    download_ips: "Baixar IPS",
+    save_proj: "💾 Salvar Projeto (JSON)",
+    save_proj_title: "Salvar todas as alterações (inimigos, ondas, portas e opções) em um arquivo JSON para continuar a edição mais tarde",
+    load_proj: "📂 Carregar Projeto (JSON)",
+    load_proj_title: "Carregar um projeto salvo anteriormente (.json) para restaurar suas edições",
+    lang_btn: "🌐 PT",
+
+    // Sidebar
+    enemies_count: "{n} inimigos",
+    doors_count: "{n} porta(s) secreta(s)",
+    boss_tag: "Chefe da Fase: {name}",
+    btn_create_stage44: "✨ + Criar Nova Sala Secreta (Fase 44)",
+    btn_open_stage44: "✨ Abrir Fase 44 (Sala Secreta)",
+    btn_reclone_stage44: "${t('btn_reclone_stage44')}",
+    mod_tag: "●",
+
+    // Secret Door Panel
+    secret_doors_title: "🚪 Sistema de Portas Secretas (Multi-Portas):",
+    doors_registered: "{tot} porta(s) cadastrada(s) no jogo · {stg} ativa(s) nesta fase",
+    no_doors: "Nenhuma porta secreta criada. Clique em \"+ Nova Porta Secreta Nesta Fase\" para criar uma.",
+    btn_new_door: "+ Nova Porta Secreta Nesta Fase",
+    door_card_label: "Porta #{idx}",
+    door_origin: "Fase da Porta:",
+    door_dest: "➔ Leva para (Sala Secreta):",
+    door_exit: "➔ Ao Vencer, Sair em:",
+    btn_del_door: "🗑 Excluir",
+    door_trigger_area: "Área do gatilho na tela:",
+    door_min_x: "X min:",
+    door_max_x: "X max:",
+    door_max_y: "Y teto:",
+    door_marked_hint: "(✓ Demarcada no Tabuleiro abaixo)",
+    door_other_stage_hint: "(Porta configurada para outra fase)",
+    door_tag_label: "PORTA",
+
+    // Custom Stage 44 Banner
+    stage44_banner_title: "Sala Secreta Customizada (Fase 44)",
+    stage44_banner_desc: "Cenário e áudio clonados da: <b>{tpl}</b>",
+    btn_reclone_top: "🔄 Clonar Outra Fase para a Fase 44",
+
+    // Boss Banner
+    stage_boss: "👑 CHEFE DA FASE: {name}",
+    boss_present: "Ativo no Cenário (#{idx} · HP: {hp} · X:{x} Y:{y})",
+    boss_absent: "Não inserido nesta área",
+    btn_focus_boss: "🎯 Focar no Chefe (#{idx})",
+    btn_insert_boss: "+ Inserir {name} no Cenário",
+
+    // Toolbar & Stage Canvas
+    wave: "Onda",
+    wave_filter: "Filtro de Onda:",
+    wave_all: "Todas",
+    zoom_label: "Zoom:",
+    controls_label: "Controles:",
+    control_drag: "Arrastar Inimigos",
+    control_cam: "Gatilho Câmera (Linha Tracejada)",
+    btn_add_enemy: "+ Inimigo",
+    btn_restore_stage: "↺ Restaurar Fase Original",
+    door_visual_btn: "+ Nova Porta Secreta (Clique & Posicione)",
+    footer_note: "Cada linha é um inimigo disparado pelo gatilho da câmera. O jogo suporta 4 simultâneos. ⚠ = VRAM passa de {max} unidades.",
+
+    // Selection Control Bar
+    btn_left: "⬅ Entrada Esq (-35px)",
+    btn_left_title: "Colocar inimigo na entrada fora da tela à esquerda (-35 px)",
+    btn_right: "➡ Entrada Dir (290px)",
+    btn_right_title: "Colocar inimigo na entrada fora da tela à direita (290 px)",
+    btn_center: "🎯 Centro (128px)",
+    btn_center_title: "Centralizar na tela (128 px)",
+    btn_floor: "↕ Chão (184px)",
+    btn_floor_title: "Alinhar altura ao chão médio (184 px)",
+    btn_dup: "⧉ Duplicar",
+    btn_dup_title: "Duplicar inimigo selecionado",
+    btn_del: "✕ Excluir",
+    btn_del_title: "Excluir inimigo selecionado",
+
+    // Table Columns & Options
+    col_num: "#",
+    col_gate: "Gate",
+    col_trigger: "Gatilho",
+    col_value: "Valor",
+    col_sprite: "Sprite",
+    col_gfx: "Gfx",
+    col_item: "Item",
+    col_hp: "Vida",
+    col_move: "Mov",
+    col_pos: "Pos",
+    col_x: "X",
+    col_y: "Y",
+    col_z: "Z",
+    pos_rel: "rel. câmera",
+    pos_abs: "absoluta",
+    cmd_barrier: "Barreira / onda",
+    cmd_barrier_hint: "espera os inimigos terminarem de entrar",
+    cmd_raw: "Comando FC (hex)",
+    gate_title: "0 = sempre; 1 = 2P",
+    trig_title: "posição câmera (1/16 px)",
+    gfx_title: "tamanho bloco VRAM",
+    x_title: "px = valor / 16",
+    wall_trap_title: "⚠️ Atenção: Y fora do chão (155..215px)! Inimigo preso na parede. Clique no botão Chão para corrigir.",
+
+    // Modal Clone
+    modal_title: "✨ Criar Nova Sala Secreta (Fase 44)",
+    modal_title_reclone: "🔄 Clonar Outro Cenário para a Fase 44",
+    modal_desc: "Escolha qualquer uma das <b>43 fases do jogo</b> para servir como base visual (gráficos, paletas de cores, música de fundo) e combate:",
+    modal_base_label: "Cenário Base para Clonar:",
+    modal_chk_enemies: "Clonar todos os inimigos originais da fase escolhida",
+    modal_enemies_desc: "Se você substituir o chefe por um inimigo comum (Billy, May, Dirk, Andore), o editor <b>ajusta automaticamente o chão e as coordenadas</b> para que ele nunca fique preso na parede!",
+    modal_chk_door: "Conectar Porta da Cela (Fase 2) nesta sala",
+    modal_door_desc: "Ao entrar na cela da prisão, transporta para esta nova fase secreta e, ao vencê-la, segue direto para o Chefe Dave.",
+    modal_btn_cancel: "Cancelar",
+    modal_btn_confirm: "✨ Confirmar e Criar",
+
+    // Logs & Alerts
+    alert_load_rom_first: "Por favor, carregue uma ROM primeiro antes de criar a Fase 44.",
+    alert_stage44_success: "✨ Fase 44 configurada com sucesso!\n\nCenário clonado: Fase {stg} ({name})\nTotal de inimigos: {cnt}",
+    alert_restore_stage_confirm: "Descartar alterações nos inimigos desta fase e voltar ao script original da ROM?",
+    alert_del_door_confirm: "Deseja excluir esta porta secreta do jogo?",
+    empty_title: "Nenhum estágio selecionado",
+    empty_desc: "Abra uma ROM compatível (.sfc ou .smc) para listar as 42 fases do jogo."
+  }
+};
+
+function t(k, p = {}){
+  const dict = I18N[CURRENT_LANG] || I18N.en;
+  let s = dict[k] || I18N.en[k] || k;
+  for(const param in p){
+    s = s.replace(new RegExp('\\{' + param + '\\}', 'g'), p[param]);
+  }
+  return s;
+}
+
+function updateStaticI18n(){
+  const btnL = $('#btn_lang');
+  if(btnL) btnL.textContent = t('lang_btn');
+  const btnO = $('#open');
+  if(btnO) btnO.textContent = t('open_rom');
+  const fn = $('#fname');
+  if(fn && !ROM && !PENDING_PROJECT) fn.textContent = t('no_rom');
+
+  const setChk = (id, lk, tk) => {
+    const el = $('#' + id);
+    if(el && el.parentElement){
+      el.parentElement.title = t(tk);
+      const txtNode = el.nextSibling;
+      if(txtNode) txtNode.textContent = ' ' + t(lk);
+    }
+  };
+  setChk('p_slots', 'slots4_label', 'slots4_title');
+  setChk('p_p2vram', 'p2vram_label', 'p2vram_title');
+  setChk('p_allgates', 'allgates_label', 'allgates_title');
+  setChk('p_secret_door', 'secret_door_label', 'secret_door_title');
+  setChk('p_share', 'share_label', 'share_title');
+
+  const btnS = $('#save'); if(btnS) btnS.textContent = t('save_rom');
+  const btnI = $('#ips'); if(btnI) btnI.textContent = t('download_ips');
+  const btnSP = $('#btn_save_proj');
+  if(btnSP){
+    btnSP.textContent = t('save_proj');
+    btnSP.title = t('save_proj_title');
+  }
+  const btnLP = $('#btn_load_proj');
+  if(btnLP){
+    btnLP.textContent = t('load_proj');
+    btnLP.title = t('load_proj_title');
+  }
+
+  // Modal texts
+  const mTitle = $('#modalTitle'); if(mTitle) mTitle.textContent = t('modal_title');
+  const mDesc = $('#modalDesc'); if(mDesc) mDesc.innerHTML = t('modal_desc');
+  const mBase = $('#modalBaseLabel'); if(mBase) mBase.textContent = t('modal_base_label');
+  const mChkE = $('#modalChkEnemiesLabel'); if(mChkE) mChkE.innerHTML = '<b>' + t('modal_chk_enemies') + '</b>';
+  const mDescE = $('#modalEnemiesDesc'); if(mDescE) mDescE.innerHTML = t('modal_enemies_desc');
+  const mChkD = $('#modalChkDoorLabel'); if(mChkD) mChkD.innerHTML = '<b>' + t('modal_chk_door') + '</b>';
+  const mDescD = $('#modalDoorDesc'); if(mDescD) mDescD.textContent = t('modal_door_desc');
+  const mCancel = $('#btnModalCancel'); if(mCancel) mCancel.textContent = t('modal_btn_cancel');
+  const mConf = $('#btnModalConfirm'); if(mConf) mConf.textContent = t('modal_btn_confirm');
+}
+
+// Configuração Oficial da Capcom (Debug All Area Map)
+const STAGE_NAMES = [
+  { id: 1, name: "ROUND 1 · 01 Police Station", en: "ROUND 1 · 01 Police Station", pt: "ROUND 1 · 01 Police Station (Delegacia)" },
+  { id: 2, name: "ROUND 1 · 02 Prison (Jail Cells)", en: "ROUND 1 · 02 Prison (Jail Cells)", pt: "ROUND 1 · 02 Prison (Celas da Prisão)" },
+  { id: 3, name: "ROUND 1 · 03 Gas Station <Boss Dave>", en: "ROUND 1 · 03 Gas Station <Boss Dave>", pt: "ROUND 1 · 03 Gas Station <Chefe Dave>" },
+  { id: 4, name: "ROUND 2 · 04 Main Street (Bar Outside)", en: "ROUND 2 · 04 Main Street (Bar Outside)", pt: "ROUND 2 · 04 Main Street (Rua do Bar)" },
+  { id: 5, name: "ROUND 2 · 05 Back Street (Warehouse)", en: "ROUND 2 · 05 Back Street (Warehouse)", pt: "ROUND 2 · 05 Back Street (Armazém / Beco)" },
+  { id: 6, name: "ROUND 2 · 06 Back Alley <Boss Callman A - Rooftops>", en: "ROUND 2 · 06 Back Alley <Boss Callman A - Rooftops>", pt: "ROUND 2 · 06 Back Alley <Chefe Callman A - Telhados>" },
+  { id: 7, name: "ROUND 2 · 07 Club Capcom <Boss Callman B - Secret Bar>", en: "ROUND 2 · 07 Club Capcom <Boss Callman B - Secret Bar>", pt: "ROUND 2 · 07 Club Capcom <Chefe Callman B - Bar Secreto>" },
+  { id: 8, name: "ROUND 3 · 08 Bus Stop Street", en: "ROUND 3 · 08 Bus Stop Street", pt: "ROUND 3 · 08 Bus Stop Street (Ponto de Ônibus na Rua)" },
+  { id: 9, name: "ROUND 3 · 09 In The Bus", en: "ROUND 3 · 09 In The Bus", pt: "ROUND 3 · 09 In The Bus (Dentro do Ônibus)" },
+  { id: 10, name: "ROUND 4A · 10 Bus Clash (Dock Crash)", en: "ROUND 4A · 10 Bus Clash (Dock Crash)", pt: "ROUND 4A · 10 Bus Clash (Batida do Ônibus / Navio)" },
+  { id: 11, name: "ROUND 3 · 11 Scrap Heap (Junkyard)", en: "ROUND 3 · 11 Scrap Heap (Junkyard)", pt: "ROUND 3 · 11 Scrap Heap (Depósito de Sucata / Ferro Velho)" },
+  { id: 12, name: "ROUND 3 · 12 On The Bus <Boss Caine>", en: "ROUND 3 · 12 On The Bus <Boss Caine>", pt: "ROUND 3 · 12 On The Bus <Chefe Caine / Kain>" },
+  { id: 13, name: "ROUND 4A · 13 Iron Bridge", en: "ROUND 4A · 13 Iron Bridge", pt: "ROUND 4A · 13 Iron Bridge (Ponte de Ferro do Navio)" },
+  { id: 14, name: "ROUND 4A · 14 Pier (Harbor)", en: "ROUND 4A · 14 Pier (Harbor)", pt: "ROUND 4A · 14 Pier (Cais do Porto)" },
+  { id: 15, name: "ROUND 4A · 15 Deck", en: "ROUND 4A · 15 Deck", pt: "ROUND 4A · 15 Deck (Convés do Navio)" },
+  { id: 16, name: "ROUND 4A · 16 Store House (Cargo Hold)", en: "ROUND 4A · 16 Store House (Cargo Hold)", pt: "ROUND 4A · 16 Store House (Porão de Carga do Navio)" },
+  { id: 17, name: "ROUND 4A · 17 Front Deck <Boss Drake>", en: "ROUND 4A · 17 Front Deck <Boss Drake>", pt: "ROUND 4A · 17 Front Deck <Chefe Drake / Dreik>" },
+  { id: 18, name: "BONUS 1 · 18 Bonus-A (Bulldozer)", en: "BONUS 1 · 18 Bonus-A (Bulldozer)", pt: "BÔNUS 1 · 18 Bonas-A (Destruir o Trator / Bulldozer)" },
+  { id: 19, name: "ROUND 4B · 19 Chinatown", en: "ROUND 4B · 19 Chinatown", pt: "ROUND 4B · 19 Chinatown (Bairro Chinês)" },
+  { id: 20, name: "ROUND 4B · 20 Billboard (Neon Signs)", en: "ROUND 4B · 20 Billboard (Neon Signs)", pt: "ROUND 4B · 20 Billboard (Painéis / Outdoors)" },
+  { id: 21, name: "ROUND 4B · 21 Restaurant (Dining Hall)", en: "ROUND 4B · 21 Restaurant (Dining Hall)", pt: "ROUND 4B · 21 Restaurant (Restaurante Chinês)" },
+  { id: 22, name: "ROUND 4B · 22 Kitchen <Boss Wong>", en: "ROUND 4B · 22 Kitchen <Boss Wong>", pt: "ROUND 4B · 22 Kitchen <Chefe Wong / Weng>" },
+  { id: 23, name: "ROUND 5 · 23 Underground Passage", en: "ROUND 5 · 23 Underground Passage", pt: "ROUND 5 · 23 Underground Passage (Passagem Subterrânea)" },
+  { id: 24, name: "ROUND 5 · 24 Chinatown (Alt Route)", en: "ROUND 5 · 24 Chinatown (Alt Route)", pt: "ROUND 5 · 24 Chinatown (Rota Alternativa)" },
+  { id: 25, name: "ROUND 5 · 25 Billboard (Alt Route)", en: "ROUND 5 · 25 Billboard (Alt Route)", pt: "ROUND 5 · 25 Billboard (Rota Alternativa)" },
+  { id: 26, name: "ROUND 5 · 26 Restaurant (Alt Route)", en: "ROUND 5 · 26 Restaurant (Alt Route)", pt: "ROUND 5 · 26 Restaurant (Rota Alternativa)" },
+  { id: 27, name: "ROUND 5 · 27 Kitchen <Sub-boss Wong>", en: "ROUND 5 · 27 Kitchen <Sub-boss Wong>", pt: "ROUND 5 · 27 Kitchen <Subchefe Wong / Weng>" },
+  { id: 28, name: "ROUND 5 · 28 Enter The Factory", en: "ROUND 5 · 28 Enter The Factory", pt: "ROUND 5 · 28 Enter The Factry (Entrada da Fábrica)" },
+  { id: 29, name: "ROUND 5 · 29 Alarm (Control Room)", en: "ROUND 5 · 29 Alarm (Control Room)", pt: "ROUND 5 · 29 Alarm (Setor de Alarme)" },
+  { id: 30, name: "ROUND 5 · 30 Research Room-1 (Secret Lab 1)", en: "ROUND 5 · 30 Research Room-1 (Secret Lab 1)", pt: "ROUND 5 · 30 Research Room-1 (Laboratório Secreto 1)" },
+  { id: 31, name: "ROUND 5 · 31 Research Room-2 (Secret Lab 2)", en: "ROUND 5 · 31 Research Room-2 (Secret Lab 2)", pt: "ROUND 5 · 31 Research Room-2 (Laboratório Secreto 2)" },
+  { id: 32, name: "ROUND 5 · 32 Computer Room (Shortcut)", en: "ROUND 5 · 32 Computer Room (Shortcut)", pt: "ROUND 5 · 32 Computer Room (Sala de Computadores - Atalho Final!)" },
+  { id: 33, name: "ROUND 5 · 33 Hall-way (Industrial Corridor)", en: "ROUND 5 · 33 Hall-way (Industrial Corridor)", pt: "ROUND 5 · 33 Hall-way (Corredor Industrial)" },
+  { id: 34, name: "ROUND 5 · 34 Crane <Boss Stray>", en: "ROUND 5 · 34 Crane <Boss Stray>", pt: "ROUND 5 · 34 Crane <Chefe Stray>" },
+  { id: 35, name: "BONUS 2 · 35 Bonus-B (Barrels)", en: "BONUS 2 · 35 Bonus-B (Barrels)", pt: "BÔNUS 2 · 35 Bonas-B (Destruir Barris / Sala Bônus)" },
+  { id: 36, name: "ROUND 6 · 36 Street Of Buildings", en: "ROUND 6 · 36 Street Of Buildings", pt: "ROUND 6 · 36 Street Of Buildings (Rua dos Edifícios / Skull Cross)" },
+  { id: 37, name: "ROUND 6 · 37 Corridor (HQ Security)", en: "ROUND 6 · 37 Corridor (HQ Security)", pt: "ROUND 6 · 37 Corridor (Corredor do Quartel General)" },
+  { id: 38, name: "ROUND 6 · 38 Other Room-1 (HQ Secret Room 1)", en: "ROUND 6 · 38 Other Room-1 (HQ Secret Room 1)", pt: "ROUND 6 · 38 Other Room-1 (Sala Secreta 1)" },
+  { id: 39, name: "ROUND 6 · 39 Other Room-2 (HQ Secret Room 2)", en: "ROUND 6 · 39 Other Room-2 (HQ Secret Room 2)", pt: "ROUND 6 · 39 Other Room-2 (Sala Secreta 2)" },
+  { id: 40, name: "ROUND 6 · 40 Elevator (Tower Lift)", en: "ROUND 6 · 40 Elevator (Tower Lift)", pt: "ROUND 6 · 40 Elevator (Elevador da Torre)" },
+  { id: 41, name: "ROUND 6 · 41 President Room (Executive Office)", en: "ROUND 6 · 41 President Room (Executive Office)", pt: "ROUND 6 · 41 President Room (Gabinete Presidencial)" },
+  { id: 42, name: "ROUND 6 · 42 Rooftop <Final Boss Black>", en: "ROUND 6 · 42 Rooftop <Final Boss Black>", pt: "ROUND 6 · 42 Rooftop <Chefe Final Black>" },
+  { id: 43, name: "TRAINING · TR Training Room", en: "TRAINING · TR Training Room", pt: "MODO DE TREINO · TR Training Room (Sala de Treino)" },
+  { id: 44, name: "ROUND 7 · NEW SECRET ROOM (Stage 44)", en: "ROUND 7 · NEW SECRET ROOM (Stage 44)", pt: "ROUND 7 · SALA SECRETA NOVA (Fase 44)" }
+];
+
+let SECRET_CONFIG={ enabled: true };
+let SECRET_DOORS=[
+  { id: 1, srcStage: 2, destStage: 7, exitStage: 3, minX: 700, maxX: 950, maxY: 205 }
+];
+
+const MODES = {
+  get 0(){ return CURRENT_LANG === 'pt' ? 'Câmera X ≥ valor' : 'Camera X ≥ value'; },
+  get 1(){ return CURRENT_LANG === 'pt' ? 'Câmera X ≤ valor' : 'Camera X ≤ value'; },
+  get 2(){ return CURRENT_LANG === 'pt' ? 'Câmera Y ≤ valor' : 'Camera Y ≤ value'; },
+  get 3(){ return CURRENT_LANG === 'pt' ? 'Câmera Y ≥ valor' : 'Camera Y ≥ value'; },
+  get 8(){ return CURRENT_LANG === 'pt' ? 'Imediato' : 'Immediate'; },
+  get 9(){ return CURRENT_LANG === 'pt' ? 'Evento = valor' : 'Event = value'; }
+};
+function areaLabel(a){
+  const s = STAGE_NAMES.find(x => x.id === a);
+  if(!s) return (CURRENT_LANG === 'pt' ? 'Fase ' : 'Stage ') + a;
+  return s[CURRENT_LANG] || s.name || s.en;
+}
+function sName(t){return SPRITES[t]&&SPRITES[t]!=='CRASH'?SPRITES[t]:(CURRENT_LANG==='pt'?'tipo ':'type ')+t.toString(16).toUpperCase().padStart(2,'0');}
+function h2(v){return v.toString(16).toUpperCase().padStart(2,'0');}
+function recs(s){return s.items.filter(i=>i.t==='rec');}
+function isMod(s){return s.items.length!==s.orig.length||s.items.some((it,i)=>it.b.some((v,k)=>v!==s.orig[i][k]));}
+
+let SORTED_SPRITES = null;
+function getSortedSprites(){
+  if(!SORTED_SPRITES){
+    SORTED_SPRITES = SPRITES.map((n, i) => ({ i, n, hex: h2(i) }))
+      .filter(x => x.n !== 'CRASH')
+      .sort((a, b) => {
+        const cmp = a.n.localeCompare(b.n, undefined, { sensitivity: 'base' });
+        if(cmp !== 0) return cmp;
+        return a.i - b.i;
+      });
+  }
+  return SORTED_SPRITES;
+}
+
+function spOpts(cur){
+  const sorted = getSortedSprites();
+  let list = sorted;
+  if(cur != null && SPRITES[cur] === 'CRASH'){
+    list = [{ i: cur, n: 'CRASH', hex: h2(cur) }, ...sorted];
+  }
+  return list.map(item => `<option value="${item.i}" ${item.i === cur ? 'selected' : ''}>${item.hex} ${item.n}</option>`).join('');
+}
+
+function renderSide(){
+  const list=[...ST.stages].sort((a,b)=>a.row-b.row);
+  const hasStage44 = ST.stages.some(s => s.id === 44);
+  const stageItemsHtml = list.map(s=>{
+    const r=recs(s);const names=[...new Set(r.map(x=>sName(x.b[4]&0xBF)))].slice(0,3).join(', ');
+    const doorCount = SECRET_CONFIG.enabled ? SECRET_DOORS.filter(d=>d.srcStage===(s.row+1)).length : 0;
+    const stageCurId = s.id || (s.row + 1);
+    const bossMeta = STAGE_BOSSES[stageCurId];
+    const bossBadge = bossMeta ? `<span title="${t('boss_tag', {name: bossMeta.name})}" style="color:#f59e0b;font-size:11px;margin-left:3px;">👑</span>` : '';
+    const doorBadge = doorCount > 0 ? `<span title="${t('doors_count', {n: doorCount})}">🚪${doorCount>1?doorCount:''}</span>` : '';
+    const isNewS44 = (s.id === 44);
+    return `<div class="st ${s.row===CUR?'on':''} ${isNewS44?'is-stage44':''}" data-r="${s.row}">
+      <b>${areaLabel(s.row+1)} ${doorBadge} ${bossBadge} ${isNewS44?'<span style="color:#10b981;font-size:10px;">[NOVA]</span>':''}</b> ${isMod(s)?'<span class="mod">●</span>':''}
+      <small>${t('enemies_count', {n: r.length})} · ${names}</small>
+    </div>`;
+  }).join('');
+
+  $('#side').innerHTML = stageItemsHtml + `
+    <div style="padding:10px;border-top:1px solid var(--line);background:var(--panel-sub);position:sticky;bottom:0;display:flex;flex-direction:column;gap:6px;">
+      <button id="btnCreateStage44" style="width:100%;padding:8px 10px;background:linear-gradient(135deg, #10b981, #059669);border:none;color:#fff;font-weight:700;font-size:11.5px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 8px rgba(16,185,129,0.3)">
+        ${hasStage44 ? t('btn_open_stage44') : t('btn_create_stage44')}
+      </button>
+      ${hasStage44 ? `
+        <button id="btnRecloneStage44" class="btn-reclone">
+          🔄 Clonar Outro Cenário para Fase 44
+        </button>
+      ` : ''}
+    </div>`;
+
+  $('#side').querySelectorAll('.st').forEach(e=>e.onclick=()=>{CUR=+e.dataset.r;SELECTED_IDX=null;ACTIVE_WAVE='all';render();});
+
+  const bS44 = $('#btnCreateStage44');
+  if(bS44){
+    bS44.onclick = () => {
+      const idx = ST.stages.findIndex(s => s.id === 44);
+      if(idx >= 0){
+        CUR = ST.stages[idx].row;
+        SELECTED_IDX = null;
+        ACTIVE_WAVE = 'all';
+        render();
+      } else {
+        openCreateStageModal(false);
+      }
+    };
+  }
+  const bReclone = $('#btnRecloneStage44');
+  if(bReclone){
+    bReclone.onclick = () => {
+      openCreateStageModal(true);
+    };
+  }
+}
+
+// ===== Criador de Nova Sala Secreta (Fase 44) =====
+// ===== Modal de Clonagem e Criação da Fase Secreta (Fase 44) =====
+function openCreateStageModal(isReclone = false){
+  if(!ST || !ST.stages) {
+    alert(t('alert_load_rom_first'));
+    return;
+  }
+  const modal = $('#modalStageClone');
+  if(!modal) return;
+
+  const sel = $('#selModalStage');
+  if(sel){
+    const curTpl = (isReclone && ST.stages.find(s => s.id === 44)) ? (ST.stages.find(s => s.id === 44).templateStage || 7) : 7;
+    sel.innerHTML = STAGE_NAMES.filter(s => s.id <= 43).map(st => {
+      const isDef = (st.id === curTpl);
+      const isFav = (st.id === 7 || st.id === 3 || st.id === 11 || st.id === 2 || st.id === 4);
+      return `<option value="${st.id}" ${isDef ? 'selected' : ''}>${st.id}. ${st.name} ${st.id===7?'⭐ [Recomendado]':''}</option>`;
+    }).join('');
+  }
+
+  const titleEl = $('#modalTitle');
+  if(titleEl){
+    titleEl.textContent = isReclone ? t('modal_title_reclone') : t('modal_title');
+  }
+
+  modal.style.display = 'flex';
+
+  $('#btnModalClose').onclick = () => { modal.style.display = 'none'; };
+  $('#btnModalCancel').onclick = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if(e.target === modal) modal.style.display = 'none'; };
+
+  $('#btnModalConfirm').onclick = () => {
+    const tplStageId = +$('#selModalStage').value || 7;
+    const cloneEnemies = $('#chkModalCloneEnemies').checked;
+    const connectDoor = $('#chkModalConnectDoor').checked;
+    modal.style.display = 'none';
+    createCustomSecretStage(tplStageId, cloneEnemies, connectDoor);
+  };
+}
+
+function createCustomSecretStage(tplStageId = 7, cloneEnemies = true, connectDoor = true){
+  if(!ST || !ST.stages) return;
+
+  const tplStage = ST.stages.find(s => s.id === tplStageId);
+  let starterItems = [];
+
+  if(cloneEnemies && tplStage && tplStage.items && tplStage.items.length > 0){
+    starterItems = tplStage.items.map(it => {
+      const clone = { t: it.t, b: it.b.slice() };
+      return clone;
+    });
+  } else {
+    // Onda balanceada limpa caso prefira começar do zero
+    starterItems = [
+      { t: 'rec', b: [0, 0, 0x00, 0x08, 5, 2, 0x82, 35, 0, 0, 0, 0x30, 0x11, 0x80, 0x0B, 0, 0] },
+      { t: 'rec', b: [0, 0, 0x00, 0x08, 6, 2, 0x82, 35, 0, 0, 0, 0xD0, 0xFD, 0x00, 0x0C, 0, 0] },
+      { t: 'cmd', b: [0xFF, 0x01] },
+      { t: 'rec', b: [0, 0, 0x00, 0x08, 7, 3, 0x8A, 120, 0, 0, 0, 0x30, 0x11, 0x80, 0x0B, 0, 0] },
+      { t: 'rec', b: [0, 0, 0x00, 0x08, 29, 2, 0x06, 1, 0, 0, 0, 0x00, 0x10, 0x60, 0x0B, 0, 0] },
+      { t: 'cmd', b: [0xFF, 0x02] }
+    ];
+  }
+
+  const existingIdx = ST.stages.findIndex(s => s.id === 44);
+  if(existingIdx >= 0){
+    ST.stages[existingIdx].templateStage = tplStageId;
+    ST.stages[existingIdx].items = starterItems;
+    
+    CUR = ST.stages[existingIdx].row;
+  } else {
+    const newStage = {
+      row: ST.stages.length,
+      id: 44,
+      area: 44,
+      name: "ROUND 7 · SALA SECRETA NOVA (Fase 44)",
+      templateStage: tplStageId,
+      ptrAt: 0x342B3 + 12,
+      start: 0xE55A8,
+      end: 0xE55A8,
+      items: starterItems,
+      orig: [],
+      
+    };
+    ST.stages.push(newStage);
+    CUR = newStage.row;
+  }
+
+  // Garante que STAGE_NAMES inclui a Fase 44
+  if(!STAGE_NAMES.some(s => s.id === 44)){
+    STAGE_NAMES.push({ id: 44, name: "ROUND 7 · SALA SECRETA NOVA (Fase 44)" });
+  }
+
+  if(connectDoor && SECRET_DOORS.length > 0){
+    SECRET_DOORS[0].destStage = 44;
+    SECRET_DOORS[0].exitStage = 3; // Ao vencer sai em Dave
+  }
+
+  render();
+  const enemyCount = starterItems.filter(x => x.t === 'rec').length;
+  alert("✨ Fase 44 configurada com sucesso!\n\nCenário clonado: Fase " + tplStageId + " (" + areaLabel(tplStageId) + ")\nInimigos: " + enemyCount + (cloneEnemies ? " (clonados da fase original)" : " (onda balanceada)") + "\n\nDica: Se trocar qualquer chefe por um inimigo comum, o editor alinha automaticamente no chão para que ele se mova e lute sem ficar preso na parede!");
+}
+
+function vramWarn(s){
+  const share=$('#p_share').checked,p2=$('#p_p2vram').checked,allG=$('#p_allgates').checked;
+  const out={};const seq=[];
+  s.items.forEach((it,i)=>{
+    if(it.t==='cmd'){seq.push(null);return;}
+    if(!allG&&it.b[0]===1)return;
+    seq.push({i,b:it.b});
+  });
+  for(let k=0;k<seq.length;k++){
+    if(!seq[k])continue;const grp=[];
+    for(let j=k;j<seq.length&&grp.length<($('#p_slots').checked?4:3);j++){if(!seq[j])break;grp.push(seq[j]);}
+    const seen=new Set();let u=0,maxP2=0;
+    for(const g of grp){
+      const key=share?((g.b[4]&0x3F)+'/'+g.b[5]):g.i;
+      if(share&&seen.has(key))continue;
+      seen.add(key);
+      const sz=g.b[5]*2;
+      u+=sz;
+      if(p2&&sz<=6&&sz>maxP2)maxP2=sz;
+    }
+    const over=p2?(u-maxP2>16):(u>16);
+    if(over)for(const g of grp)out[g.i]=Math.max(out[g.i]||0,u);
+  }
+  return out;
+}
+
+function getStageWaves(s){
+  const waves=[{id:0,name:t('wave')+' 1',items:[]}];
+  let w=0;
+  s.items.forEach((it,idx)=>{
+    if(it.t==='cmd'){
+      w++;
+      waves.push({id:w,name:t('wave')+' '+(w+1),items:[]});
+    }else{
+      waves[w].items.push({it,idx});
+    }
+  });
+  return waves.filter(w=>w.items.length>0);
+}
+
+// ===== Render Principal =====
+function render(){
+  renderSide();
+  const s=ST.stages.find(x=>x.row===CUR);
+  const warn=vramWarn(s);
+  const maxV=$('#p_p2vram').checked?22:16;
+  const waves=getStageWaves(s);
+  const curStageId = (s.row != null ? s.row + 1 : s.id);
+
+  // Painel de Configuração de Portas Secretas (Multi-Portas)
+  let secretHtml='';
+  if(SECRET_CONFIG.enabled){
+    const stageDoors = SECRET_DOORS.filter(d => d.srcStage === curStageId);
+
+    const doorCards = SECRET_DOORS.map((d, idx) => {
+      const isCur = (d.srcStage === curStageId);
+      const srcOpts = STAGE_NAMES.map(st => `<option value="${st.id}" ${st.id===d.srcStage?'selected':''}>${st.id}. ${st.name}</option>`).join('');
+      const destOpts = STAGE_NAMES.map(st => `<option value="${st.id}" ${st.id===d.destStage?'selected':''}>${st.id}. ${st.name}</option>`).join('');
+      const exitOpts = STAGE_NAMES.map(st => `<option value="${st.id}" ${st.id===d.exitStage?'selected':''}>${st.id}. ${st.name}</option>`).join('');
+
+      return `<div class="door-card ${isCur?'active-stage':''}">
+        <div class="secret-row">
+          <span class="pill" style="background:${isCur?'var(--warn)':'var(--chip)'};color:${isCur?'#000':'var(--ink)'};font-weight:bold;">${t('door_card_label', {idx: idx+1})}</span>
+          <span>${t('door_origin')}</span>
+          <select class="sel_door_src" data-idx="${idx}" style="max-width:210px">${srcOpts}</select>
+          <span>${t('door_dest')}</span>
+          <select class="sel_door_dest" data-idx="${idx}" style="max-width:220px">${destOpts}</select>
+          <span>${t('door_exit')}</span>
+          <select class="sel_door_exit" data-idx="${idx}" style="max-width:210px">${exitOpts}</select>
+          <button class="btn-del-door" data-idx="${idx}" title="${t('btn_del_door')}">${t('btn_del_door')}</button>
+        </div>
+        <div class="secret-row" style="color:var(--mute);margin-top:2px;">
+          <span>${t('door_trigger_area')}</span>
+          <span>${t('door_min_x')} <input type="number" class="inp_door_min" data-idx="${idx}" value="${d.minX}" style="width:65px"> px</span>
+          <span>${t('door_max_x')} <input type="number" class="inp_door_max" data-idx="${idx}" value="${d.maxX}" style="width:65px"> px</span>
+          <span>${t('door_max_y')} <input type="number" class="inp_door_y" data-idx="${idx}" value="${d.maxY}" style="width:60px"> px</span>
+          <span class="hint" style="color:${isCur?'var(--ok)':'inherit'}">${isCur?t('door_marked_hint'):t('door_other_stage_hint')}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    secretHtml=`<div class="secret-panel">
+      <div class="secret-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <b>${t('secret_doors_title')}</b>
+          <span class="hint">${t('doors_registered', {tot: SECRET_DOORS.length, stg: stageDoors.length})}</span>
+        </div>
+        <button id="btn_add_door" class="sec" style="font-size:11px;padding:3px 10px;">${t('btn_new_door')}</button>
+      </div>
+      ${SECRET_DOORS.length > 0 ? doorCards : '<div style="color:var(--mute);padding:6px 0;">'+t('no_doors')+'</div>'}
+    </div>`;
+  }
+
+  // Banner Informativo da Fase 44 (Sala Secreta Clonada)
+  let customBgHtml = '';
+  if(s.id === 44){
+    const tplId = s.templateStage || 7;
+    const tplName = (STAGE_NAMES.find(st => st.id === tplId) || {}).name || ('Fase ' + tplId);
+    customBgHtml = `
+    <div class="secret-panel" style="border-color:rgba(16,185,129,0.5);margin-bottom:12px;background:var(--panel);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:16px;">⚡</span>
+          <div>
+            <b style="color:var(--ok)">${t('stage44_banner_title')}</b>
+            <span class="hint" style="margin-left:8px;">${t('stage44_banner_desc', {tpl: tplName})}</span>
+          </div>
+        </div>
+        <button id="btnRecloneTop" class="sec" style="font-size:11px;padding:4px 10px;">${t('btn_reclone_top')}</button>
+      </div>
+    </div>`;
+  }
+
+  // Header da Fase
+  // Chefe da Fase (se aplicável para este Round/Fase)
+  const bossMeta = STAGE_BOSSES[curStageId];
+  let bossHtml = '';
+  if(bossMeta){
+    const bossIdx = s.items.findIndex(it => it.t === 'rec' && ((it.b[4] & 0x3F) >= 20 && (it.b[4] & 0x3F) <= 26));
+    const bossPresent = (bossIdx >= 0);
+    const bossItem = bossPresent ? s.items[bossIdx] : null;
+    const bossHp = bossItem ? rec.hp(bossItem.b) : 120;
+    const bossX = bossItem ? Math.round(rec.x(bossItem.b)/16) : 0;
+    const bossY = bossItem ? Math.round(rec.y(bossItem.b)/16) : 0;
+
+    bossHtml = `
+    <div class="stage-boss-banner">
+      <img src="${encodeURI(bossMeta.file)}" class="stage-boss-avatar" alt="${bossMeta.name}">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <b style="color:#f59e0b;font-size:12px;">${t('stage_boss', {name: bossMeta.name})}</b>
+          ${bossPresent ? `<span class="pill" style="background:#f59e0b;color:#000;font-weight:bold;font-size:10px;">${t('boss_present', {idx: bossIdx+1, hp: bossHp, x: bossX, y: bossY})}</span>` : `<span class="pill" style="background:#64748b;color:#fff;font-size:10px;">${t('boss_absent')}</span>`}
+        </div>
+        <span class="hint" style="color:#94a3b8;font-size:11px;">${bossMeta.desc}</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        ${bossPresent ? 
+          `<button id="btnFocusBoss" class="sec" style="font-size:11px;padding:3px 10px;" data-boss-idx="${bossIdx}">${t('btn_focus_boss', {idx: bossIdx+1})}</button>` :
+          `<button id="btnAddBoss" class="sec" style="font-size:11px;padding:3px 10px;border-color:#f59e0b;color:#f59e0b;">${t('btn_insert_boss', {name: bossMeta.name})}</button>`
+        }
+      </div>
+    </div>`;
+  }
+
+  let html=`${secretHtml}
+  ${customBgHtml}
+  ${bossHtml}
+  <div class="bar">
+    <b>${areaLabel(s.area)}</b>
+    <span class="pill">${recs(s).length} inimigos</span>
+    <span class="pill">${s.items.length} entradas</span>
+    <button id="addE" class="sec">+ Inimigo</button>
+    <button id="addW">+ Barreira (FF xx)</button>
+    <button id="syncW" title="Igualar gatilho de câmera do 4º inimigo ao do 3º">⚡ Sincronizar ondas de 4</button>
+    <button id="rev">Desfazer esta fase</button>
+  </div>`;
+
+  // ===== TABULEIRO VISUAL (2D VIEWPORT PANORÂMICO) =====
+  let maxTrig = 0;
+  s.items.forEach(it => { if(it.t==='rec') maxTrig = Math.max(maxTrig, rec.trig(it.b)/16); });
+  const isPano = (BOARD_VIEW_MODE === 'pano');
+
+  const tplStageId = (s && s.templateStage) ? s.templateStage : curStageId;
+  const targetImgId = STAGE_BG_IMAGES[tplStageId] ? tplStageId : (STAGE_BG_IMAGES[curStageId] ? curStageId : null);
+
+  let stageLen;
+  if(isPano) {
+    if(targetImgId && STAGE_BG_WIDTHS[targetImgId]) {
+      const bgW = STAGE_BG_WIDTHS[targetImgId];
+      stageLen = Math.max(bgW, maxTrig + 256);
+    } else {
+      stageLen = Math.max(1024, maxTrig + 320);
+    }
+  } else {
+    stageLen = 396;
+  }
+  const arenaW = Math.round(stageLen * BOARD_ZOOM);
+  const arenaH = Math.round(224 * BOARD_ZOOM);
+  const screenLeft = Math.round(70 * BOARD_ZOOM);
+  const screenW = Math.round(256 * BOARD_ZOOM);
+
+  const waveTabs = [`<span class="pill wave-pill ${ACTIVE_WAVE==='all'?'active':''}" data-w="all">Todas as Ondas</span>`]
+    .concat(waves.map((w,i)=>`<span class="pill wave-pill ${ACTIVE_WAVE===''+w.id?'active':''}" data-w="${w.id}">${w.name} (${w.items.length})</span>`))
+    .join('');
+
+  // Barreiras de onda em modo panorâmico
+  let waveBarriersHtml = '';
+  if(isPano) {
+    s.items.forEach((it, i) => {
+      if(it.t==='cmd' && it.b.length===2) {
+        let prevTrig = 0;
+        for(let j=i-1; j>=0; j--){ if(s.items[j].t==='rec'){ prevTrig = rec.trig(s.items[j].b)/16; break; } }
+        const barX = Math.round((prevTrig + 128) * BOARD_ZOOM);
+        waveBarriersHtml += `<div class="arena-wave-barrier" style="left:${barX}px"><span class="arena-wave-badge">Barreira #${h2(it.b[1])}</span></div>`;
+      }
+    });
+  }
+
+  // Demarcação de todas as portas desta fase no tabuleiro com handles de redimensionamento
+  const stageDoors = SECRET_CONFIG.enabled ? SECRET_DOORS.filter(d => d.srcStage === (s.row + 1)) : [];
+  const doorZoneHtml = stageDoors.map((d, di) => {
+    const globalIdx = SECRET_DOORS.indexOf(d);
+    const dLeft = Math.round((isPano ? d.minX : (d.minX + 70)) * BOARD_ZOOM);
+    const dW = Math.max(24, Math.round((d.maxX - d.minX) * BOARD_ZOOM));
+    const dTop = Math.round(135 * BOARD_ZOOM);
+    const dH = Math.max(28, Math.round((d.maxY - 135) * BOARD_ZOOM));
+    const destName = areaLabel(d.destStage);
+    return `<div class="arena-door-zone" data-door-idx="${globalIdx}" style="left:${dLeft}px;width:${dW}px;top:${dTop}px;height:${dH}px" title="Clique e arraste para mover. Puxe as bordas para redimensionar.">
+      <div class="door-resize-handle door-handle-l" title="Arrastar para alterar X min"></div>
+      <div class="door-resize-handle door-handle-r" title="Arrastar para alterar X max"></div>
+      <div class="door-resize-handle door-handle-t" title="Arrastar para alterar Y teto"></div>
+      <div class="door-tag">🚪 ${t('door_tag_label')} #${di+1} (X:${d.minX}..${d.maxX}) ➔ ${destName}</div>
+    </div>`;
+  }).join('');
+
+  html += `<div class="board-box">
+    <div class="board-header">
+      <div class="left" style="display:flex;align-items:center;gap:10px;">
+        <b style="font-size:12.5px">🎮 Tabuleiro Visual de Posicionamento</b>
+        <div style="display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow:hidden;">
+          <button id="btnViewPano" class="${isPano?'pri':''}" style="padding:2px 8px;font-size:11px;border-radius:0;border:none;">🏙️ Panorâmica (${stageLen}px)</button>
+          <button id="btnViewSingle" class="${!isPano?'pri':''}" style="padding:2px 8px;font-size:11px;border-radius:0;border:none;">📺 Tela SNES (256px)</button>
+        </div>
+        <button id="btnAddDoorVisual" class="sec" style="padding:2px 8px;font-size:11px;" title="Cria uma nova porta na área central visível da rua">🚪 + Adicionar Porta no Cenário</button>
+      </div>
+      <div class="right">
+        <span class="hint">Zoom:</span>
+        <button id="zoom1" class="${BOARD_ZOOM===1?'pri':''}" style="padding:2px 7px;font-size:11px">1x</button>
+        <button id="zoom15" class="${BOARD_ZOOM===1.5?'pri':''}" style="padding:2px 7px;font-size:11px">1.5x</button>
+        <button id="zoom2" class="${BOARD_ZOOM===2?'pri':''}" style="padding:2px 7px;font-size:11px">2x</button>
+      </div>
+    </div>
+
+    <div style="padding:6px 12px;background:var(--panel-sub);border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="hint" style="font-weight:600">Filtrar onda:</span>
+      ${waveTabs}
+    </div>
+
+    <div class="board-viewport">
+      <div class="board-arena" id="boardArena" style="width:${arenaW}px;height:${arenaH}px">
+        <canvas id="stageBgCanvas" width="${arenaW}" height="${arenaH}"></canvas>
+        ${isPano ? waveBarriersHtml : `
+          <div class="arena-side-left" style="width:${screenLeft}px"></div>
+          <div class="arena-side-tag-l">⬅ Entrada Fora (Esq.)</div>
+          
+          <div class="arena-screen" style="left:${screenLeft}px;width:${screenW}px">
+            <div class="arena-screen-tag">Área Visível SNES (256 × 224)</div>
+          </div>
+          
+          <div class="arena-side-right" style="width:${screenLeft}px"></div>
+          <div class="arena-side-tag-r">Entrada Fora (Dir.) ➡</div>
+        `}
+        
+        <div class="arena-floor" style="top:${Math.round(150*BOARD_ZOOM)}px;height:${Math.round(65*BOARD_ZOOM)}px">
+          <div class="arena-floor-grid"></div>
+        </div>
+        <div class="arena-floor-label" style="top:${Math.round(152*BOARD_ZOOM)}px;left:${isPano?12:(screenLeft+6)}px">Plano do Chão (Y: 155..215 px)</div>
+
+        ${doorZoneHtml}
+
+        <div id="dragGuideX" class="drag-guide-x"></div>
+        <div id="dragGuideY" class="drag-guide-y"></div>
+
+        <div id="tokenContainer"></div>
+      </div>
+    </div>
+
+    <div class="board-actions">
+      <span id="selLabel"><b>Nenhum inimigo selecionado</b></span>
+      <div style="flex:1"></div>
+      <button id="b_left" title="${t('btn_left_title')}">${t('btn_left')}</button>
+      <button id="b_right" title="${t('btn_right_title')}">${t('btn_right')}</button>
+      <button id="b_center" title="${t('btn_center_title')}">${t('btn_center')}</button>
+      <button id="b_floor" title="${t('btn_floor_title')}">${t('btn_floor')}</button>
+      <button id="b_dup" title="${t('btn_dup_title')}">${t('btn_dup')}</button>
+      <button id="b_del" title="${t('btn_del_title')}" style="color:var(--acc)">${t('btn_del')}</button>
+    </div>
+  </div>`;
+
+  // ===== TABELA DETALHADA =====
+  html+=`<p class="note">${t('footer_note', {max: maxV})}</p>
+  <div style="overflow:auto"><table><tr><th>${t('col_num')}</th><th>${t('col_gate')}</th><th>${t('col_trigger')}</th><th>${t('col_value')}</th><th>${t('col_sprite')}</th><th>${t('col_gfx')}</th><th>${t('col_item')}</th><th>${t('col_hp')}</th><th>${t('col_move')}</th><th>${t('col_pos')}</th><th>${t('col_x')}</th><th>${t('col_y')}</th><th>${t('col_z')}</th><th></th></tr>`;
+  
+  s.items.forEach((it,i)=>{
+    const b=it.b;
+    if(it.t==='cmd'){
+      const isW=b.length===2;
+      html+=`<tr class="cmd" data-row-idx="${i}"><td>${i+1}</td><td colspan="12">${isW?`${t('cmd_barrier')} <input class="h" data-i="${i}" data-f="w" value="${h2(b[1])}"> <span class="hint">${t('cmd_barrier_hint')}</span>`:`${t('cmd_raw')} <input style="width:230px" data-i="${i}" data-f="raw" value="${hex(Uint8Array.from(b))}">`}</td>
+      <td class="act"><button data-i="${i}" data-a="up">↑</button><button data-i="${i}" data-a="dn">↓</button><button data-i="${i}" data-a="del">✕</button></td></tr>`;
+      return;
+    }
+    const mode=b[1]&0x0F;
+    const mopts=Object.entries(MODES).map(([k,v])=>`<option value="${k}" ${+k===b[1]?'selected':''}>${v}</option>`).join('')+(MODES[b[1]]?'':`<option value="${b[1]}" selected>modo ${b[1]}</option>`);
+    const w=warn[i];
+    const isSel = (SELECTED_IDX===i);
+    html+=`<tr class="${w?'warn':''} ${isSel?'row-selected':''}" data-row-idx="${i}" title="${w?'VRAM estimada: '+w+' / '+maxV:''}">
+    <td>${i+1}${w?' ⚠':''}</td>
+    <td><input class="h" data-i="${i}" data-f="gate" value="${h2(b[0])}" title="0 = sempre; 1 = 2P"></td>
+    <td><select data-i="${i}" data-f="mode">${mopts}</select></td>
+    <td><input class="n" data-i="${i}" data-f="trig" value="${rec.trig(b)}" title="posição câmera (1/16 px)"></td>
+    <td style="white-space:nowrap;"><span style="display:inline-flex;align-items:center;gap:6px;">${getEnemyVisualTableHtml(b[4])}<select data-i="${i}" data-f="type">${spOpts(b[4])}</select></span></td>
+    <td><input class="h" data-i="${i}" data-f="gfx" value="${h2(b[5])}" title="tamanho bloco VRAM"></td>
+    <td><input class="h" data-i="${i}" data-f="item" value="${h2(b[6])}"></td>
+    <td><input class="n" data-i="${i}" data-f="hp" value="${rec.hp(b)}"></td>
+    <td><input class="h" data-i="${i}" data-f="move" value="${h2(b[9])}"></td>
+    <td><select data-i="${i}" data-f="pos"><option value="0" ${b[10]?'':'selected'}>${t('pos_rel')}</option><option value="1" ${b[10]?'selected':''}>${t('pos_abs')}</option></select></td>
+    <td><input class="n" data-i="${i}" data-f="x" value="${rec.x(b)}" title="px = valor / 16"></td>
+    ${(()=>{
+      const curY = rec.y(b) / 16;
+      const isWallTrap = (curY < 155 || curY > 215) && ((b[4] & 0x3F) < 20 || (b[4] & 0x3F) > 26);
+      return `<td title="${isWallTrap?'⚠️ Atenção: Y fora do chão (155..215px)! Inimigo preso na parede. Clique no botão Chão para corrigir.':''}"><input class="n ${isWallTrap?'warn-wall':''}" data-i="${i}" data-f="y" value="${rec.y(b)}" ${isWallTrap?'style="border-color:#ef4444;color:#ef4444;font-weight:bold"':''}></td>`;
+    })()}
+    <td><input class="n" data-i="${i}" data-f="z" value="${rec.z(b)}"></td>
+    <td class="act"><button data-i="${i}" data-a="up">↑</button><button data-i="${i}" data-a="dn">↓</button><button data-i="${i}" data-a="dup">⧉</button><button data-i="${i}" data-a="del">✕</button></td></tr>`;
+  });
+  html+=`</table></div><div id="log"></div>`;
+
+  $('#work').innerHTML=html;
+
+  renderBoardTokens(s);
+
+  // Listeners de edição da tabela
+  $('#work').querySelectorAll('[data-f]').forEach(e=>e.onchange=()=>edit(s,e));
+  $('#work').querySelectorAll('[data-a]').forEach(e=>e.onclick=()=>action(s,+e.dataset.i,e.dataset.a));
+  
+  // Seleção ao clicar em linhas da tabela
+  $('#work').querySelectorAll('tr[data-row-idx]').forEach(tr=>{
+    tr.onclick=(ev)=>{
+      if(ev.target.tagName==='INPUT'||ev.target.tagName==='SELECT'||ev.target.tagName==='BUTTON')return;
+      const idx = +tr.dataset.rowIdx;
+      if(s.items[idx]&&s.items[idx].t==='rec') selectEnemy(idx);
+    };
+  });
+
+  // Toolbar actions
+  $('#addE').onclick=()=>{
+    const r=recs(s);
+    // Base padrão: Billy (Sprite 5, Gfx 2, HP 35, X: 275px, Y: 184px, Camera Trig: 128px)
+    let base = [0, 0, 0x00, 0x08, 5, 2, 0x80, 35, 0, 0, 0, 0x30, 0x11, 0x80, 0x0B, 0, 0];
+    
+    if (SELECTED_IDX != null && s.items[SELECTED_IDX] && s.items[SELECTED_IDX].t === 'rec') {
+      base = s.items[SELECTED_IDX].b.slice();
+    } else if (r.length > 0) {
+      const validRec = r.slice().reverse().find(x => x.b[5] >= 2) || r[r.length - 1];
+      base = validRec.b.slice();
+    }
+    
+    // Garante que campos essenciais nunca sejam 0 ou fora do chão
+    if (!base[5] || base[5] === 0) base[5] = 2; // VRAM nunca pode ser 0
+    const curY = rec.y(base) / 16;
+    if (curY < 155 || curY > 215) setW(base, 13, 184 * 16); // Chão sempre válido (184px)
+    if (rec.hp(base) <= 0) setW(base, 7, 35); // HP padrão
+    
+    // Insere antes do final do script / barreira final para não quebrar a onda
+    let insertIdx = s.items.length;
+    if (SELECTED_IDX != null && SELECTED_IDX >= 0 && SELECTED_IDX < s.items.length) {
+      insertIdx = SELECTED_IDX + 1;
+    } else {
+      for (let j = s.items.length - 1; j >= 0; j--) {
+        if (s.items[j].t === 'cmd') {
+          insertIdx = j;
+          break;
+        }
+      }
+    }
+    s.items.splice(insertIdx, 0, { t: 'rec', b: base });
+    render();
+    selectEnemy(insertIdx);
+  };
+  $('#addW').onclick=()=>{
+    let insertIdx = s.items.length;
+    for (let j = s.items.length - 1; j >= 0; j--) {
+      if (s.items[j].t === 'cmd') {
+        insertIdx = j;
+        break;
+      }
+    }
+    let maxCmdNum = 0;
+    s.items.forEach(it => { if(it.t==='cmd' && it.b.length===2) maxCmdNum = Math.max(maxCmdNum, it.b[1]); });
+    s.items.splice(insertIdx, 0, { t: 'cmd', b: [0xFF, (maxCmdNum + 1) & 0xFF] });
+    render();
+  };
+  $('#syncW').onclick=()=>{
+    let grp=[];
+    for(const it of s.items){
+      if(it.t==='cmd'){grp=[];continue;}
+      it.b[0]=0;
+      grp.push(it.b);
+      if(grp.length===4&&grp[3][1]===grp[2][1]){grp[3][2]=grp[2][2];grp[3][3]=grp[2][3];}
+    }
+    render();
+  };
+  $('#rev').onclick=()=>{s.items=s.orig.map((b,i)=>({t:b[0]===0xFF?'cmd':'rec',b:b.slice()}));SELECTED_IDX=null;render();};
+
+  // Zoom buttons
+  $('#zoom1').onclick=()=>{BOARD_ZOOM=1;render();};
+  $('#zoom15').onclick=()=>{BOARD_ZOOM=1.5;render();};
+  $('#zoom2').onclick=()=>{BOARD_ZOOM=2;render();};
+
+  const btnPano = $('#btnViewPano');
+  if(btnPano) btnPano.onclick=()=>{BOARD_VIEW_MODE='pano';render();};
+  const btnSingle = $('#btnViewSingle');
+  if(btnSingle) btnSingle.onclick=()=>{BOARD_VIEW_MODE='single';render();};
+
+  const btnAddDoorVis = $('#btnAddDoorVisual');
+  if(btnAddDoorVis) btnAddDoorVis.onclick=()=>{
+    addDoorAtVisualCenter();
+  };
+
+  // Renderiza o cenário da fase no Canvas
+  drawStageBackground($('#stageBgCanvas'), s, arenaW, arenaH, BOARD_ZOOM);
+  setupDoorInteractions();
+
+  // Wave filter pills
+  $('#work').querySelectorAll('.wave-pill').forEach(pill=>{
+    pill.onclick=()=>{ACTIVE_WAVE=pill.dataset.w;render();};
+  });
+
+  // Eventos das Portas Secretas (Multi-Portas)
+  const btnAddDoor = $('#btn_add_door');
+  if(btnAddDoor){
+    btnAddDoor.onclick = () => {
+      const curId = s.row + 1;
+      let defMin = 560, defMax = 630, defY = 185;
+      if(curId === 2){ defMin = 700; defMax = 950; defY = 205; }
+      else if(curId === 5){ defMin = 750; defMax = 900; defY = 185; }
+      else { defMin = 200; defMax = 350; defY = 185; }
+      SECRET_DOORS.push({
+        id: Date.now(),
+        srcStage: curId,
+        destStage: 7, // Bar
+        exitStage: (curId + 1 <= 43 ? curId + 1 : 3),
+        minX: defMin,
+        maxX: defMax,
+        maxY: defY
+      });
+      render();
+    };
+  }
+
+  document.querySelectorAll('.btn-del-door').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.idx;
+      SECRET_DOORS.splice(idx, 1);
+      render();
+    };
+  });
+  document.querySelectorAll('.sel_door_src').forEach(sel => {
+    sel.onchange = () => { SECRET_DOORS[+sel.dataset.idx].srcStage = +sel.value; render(); };
+  });
+  document.querySelectorAll('.sel_door_dest').forEach(sel => {
+    sel.onchange = () => { SECRET_DOORS[+sel.dataset.idx].destStage = +sel.value; render(); };
+  });
+  document.querySelectorAll('.sel_door_exit').forEach(sel => {
+    sel.onchange = () => { SECRET_DOORS[+sel.dataset.idx].exitStage = +sel.value; render(); };
+  });
+  document.querySelectorAll('.inp_door_min').forEach(inp => {
+    inp.onchange = () => { SECRET_DOORS[+inp.dataset.idx].minX = +inp.value; render(); };
+  });
+  document.querySelectorAll('.inp_door_max').forEach(inp => {
+    inp.onchange = () => { SECRET_DOORS[+inp.dataset.idx].maxX = +inp.value; render(); };
+  });
+  document.querySelectorAll('.inp_door_y').forEach(inp => {
+    inp.onchange = () => { SECRET_DOORS[+inp.dataset.idx].maxY = +inp.value; render(); };
+  });
+
+  // Board action buttons
+  $('#b_left').onclick=()=>{if(SELECTED_IDX!=null) setPos(s,SELECTED_IDX,-35,null);};
+  $('#b_right').onclick=()=>{if(SELECTED_IDX!=null) setPos(s,SELECTED_IDX,290,null);};
+  $('#b_center').onclick=()=>{if(SELECTED_IDX!=null) setPos(s,SELECTED_IDX,128,null);};
+  $('#b_floor').onclick=()=>{
+      if(SELECTED_IDX!=null){
+        const it = s.items[SELECTED_IDX];
+        if(it && it.t==='rec'){
+          setW(it.b, 13, 184 * 16);
+          if(it.b[10] === 1 && ((it.b[4] & 0x3F) < 20 || (it.b[4] & 0x3F) > 26)){
+            it.b[10] = 0;
+            setW(it.b, 11, 275 * 16);
+          }
+          render();
+          selectEnemy(SELECTED_IDX);
+        }
+      }
+    };
+  $('#b_dup').onclick=()=>{if(SELECTED_IDX!=null) action(s,SELECTED_IDX,'dup');};
+  $('#b_del').onclick=()=>{if(SELECTED_IDX!=null) action(s,SELECTED_IDX,'del');};
+
+  updateButtons();
+
+  const bFocus = $('#btnFocusBoss');
+  if(bFocus){
+    bFocus.onclick = () => {
+      const bIdx = +bFocus.dataset.bossIdx;
+      selectEnemy(bIdx);
+      const bItem = s.items[bIdx];
+      if(bItem){
+        const isAbs = (bItem.b[10] === 1);
+        const trigPx = rec.trig(bItem.b) / 16;
+        const xPx = rec.x(bItem.b) / 16;
+        const wX = isAbs ? xPx : (trigPx + xPx);
+        const vp = $('#boardViewport');
+        if(vp) vp.scrollTo({ left: Math.max(0, (wX - 250) * BOARD_ZOOM), behavior: 'smooth' });
+      }
+    };
+  }
+  const bAddBoss = $('#btnAddBoss');
+  if(bAddBoss && bossMeta){
+    bAddBoss.onclick = () => {
+      insertBossIntoStage(s, bossMeta);
+    };
+  }
+
+  const bRecloneTop = $('#btnRecloneTop');
+  if(bRecloneTop){
+    bRecloneTop.onclick = () => {
+      openCreateStageModal(true);
+    };
+  }
+}
+
+// ===== Lógica de Render e Drag dos Tokens no Tabuleiro =====
+function insertBossIntoStage(s, bossMeta){
+  const bossType = bossMeta.id; // 20 Dave, 21 Callman, etc.
+  const bgW = STAGE_BG_WIDTHS[s.id] || 768;
+  const targetX = Math.max(300, Math.round(bgW - 120));
+  const targetY = 176;
+  const newBossRec = [0, 0, 0x00, 0x08, bossType, 4, 0x8A, 120, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+  setW(newBossRec, 11, targetX * 16);
+  setW(newBossRec, 13, targetY * 16);
+  setW(newBossRec, 2, Math.max(0, targetX - 250) * 16);
+  
+  const cmdIdx = s.items.findIndex(it => it.t === 'cmd' && it.b[0] === 0xFF);
+  if(cmdIdx >= 0){
+    s.items.splice(cmdIdx, 0, { t: 'rec', b: newBossRec });
+  } else {
+    s.items.push({ t: 'rec', b: newBossRec });
+  }
+  render();
+  const addedIdx = s.items.findIndex(it => it.b === newBossRec);
+  if(addedIdx >= 0) selectEnemy(addedIdx);
+}
+
+function renderBoardTokens(s){
+  const container=$('#tokenContainer');
+  if(!container)return;
+  container.innerHTML='';
+
+  let currentWave=0;
+  const wavesMap=[];
+  s.items.forEach((it,i)=>{
+    if(it.t==='cmd') currentWave++;
+    else wavesMap[i]=currentWave;
+  });
+
+  let lastNonZeroTrig = 0;
+  s.items.forEach((it,i)=>{
+    if(it.t!=='rec')return;
+    const b=it.b;
+    const curTrig = rec.trig(b);
+    if(curTrig > 0) lastNonZeroTrig = curTrig;
+    const effectiveTrig = (curTrig > 0) ? curTrig : lastNonZeroTrig;
+
+    const itemWave=wavesMap[i]||0;
+    const isDimmed = (ACTIVE_WAVE!=='all' && ACTIVE_WAVE!==''+itemWave);
+    const isSel = (SELECTED_IDX===i);
+
+    const xPx = rec.x(b) / 16;
+    const yPx = rec.y(b) / 16;
+    const isPano = (BOARD_VIEW_MODE === 'pano');
+
+    const isAbs = (b[10] === 1);
+    const isBoss = ((b[4] & 0x3F) >= 20 && (b[4] & 0x3F) <= 26);
+
+    let worldX;
+    if(isAbs){
+      worldX = isPano ? xPx : (xPx - (effectiveTrig/16) + 70);
+    } else {
+      worldX = isPano ? ((effectiveTrig/16) + xPx) : (xPx + 70);
+    }
+    const tokenX = worldX * BOARD_ZOOM;
+    const tokenY = yPx * BOARD_ZOOM;
+
+    const token=document.createElement('div');
+    token.className=`enemy-token ${isBoss?'is-boss':''} ${isSel?'is-selected':''} ${isDimmed?'dimmed':''}`;
+    token.style.left=`${tokenX}px`;
+    token.style.top=`${tokenY}px`;
+    token.dataset.idx=i;
+
+    const col=enemyColor(b[4]);
+    const em=enemyEmoji(b[4]);
+    const name=sName(b[4]&0xBF);
+    const hp=rec.hp(b);
+    const maxHp=Math.max(hp, 100);
+    const hpPct=Math.min(100, Math.round((hp/maxHp)*100));
+
+    token.innerHTML=`
+      <div class="token-tag">
+        <span class="token-num">${isBoss ? '👑 ' : ''}#${i+1}</span>
+        <span class="token-name" title="${name}">${name}</span>
+      </div>
+      <div class="token-hp-bar">
+        <div class="token-hp-fill" style="width:${hpPct}%;background:${col}"></div>
+      </div>
+      <div class="token-sprite-wrap">
+        ${getEnemyVisualHtml(b[4], BOARD_ZOOM)}
+      </div>
+      <div class="token-shadow"></div>
+      <div class="token-coords">${isPano ? (isAbs ? 'Mundo X:' + Math.round(worldX) : 'Mundo X:' + Math.round(worldX)) : 'Tela X:' + Math.round(xPx)} Y:${Math.round(yPx)}</div>
+    `;
+
+    // Se clicar em um chefe que está em outra onda, foca nele
+    if(isBoss && isDimmed){
+      token.onclick = (e) => {
+        ACTIVE_WAVE = '' + itemWave;
+        selectEnemy(i);
+        render();
+      };
+    }
+
+    setupTokenDrag(token, s, i);
+    container.appendChild(token);
+  });
+
+  updateSelectedLabel(s);
+}
+
+function updateSelectedLabel(s){
+  const lbl=$('#selLabel');
+  if(!lbl)return;
+  if(SELECTED_IDX!=null&&s.items[SELECTED_IDX]&&s.items[SELECTED_IDX].t==='rec'){
+    const b=s.items[SELECTED_IDX].b;
+    const name=sName(b[4]&0xBF);
+    const xPx=Math.round(rec.x(b)/16);
+    const yPx=Math.round(rec.y(b)/16);
+    const spriteImg = getEnemySpriteImg(b[4]);
+    const isBoss = ((b[4] & 0x3F) >= 20 && (b[4] & 0x3F) <= 26);
+    lbl.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${spriteImg ? `<img src="${encodeURI(spriteImg)}" style="height:36px;image-rendering:pixelated;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));">` : ''}
+        <div>
+          <span>Inimigo selecionado:</span>
+          <b style="color:${isBoss?'#f59e0b':'var(--warn)'}">${isBoss?'👑 ':''}#${SELECTED_IDX+1} ${name}</b>
+          <span class="hint" style="margin-left:6px;">(X: ${xPx}px, Y: ${yPx}px · Vida: ${rec.hp(b)})</span>
+        </div>
+      </div>`;
+    $('#b_left').disabled=false;
+    $('#b_right').disabled=false;
+    $('#b_center').disabled=false;
+    $('#b_floor').disabled=false;
+    $('#b_dup').disabled=false;
+    $('#b_del').disabled=false;
+  } else {
+    lbl.innerHTML='<span style="color:var(--mute)">Nenhum inimigo selecionado (clique em um no tabuleiro ou tabela)</span>';
+    $('#b_left').disabled=true;
+    $('#b_right').disabled=true;
+    $('#b_center').disabled=true;
+    $('#b_floor').disabled=true;
+    $('#b_dup').disabled=true;
+    $('#b_del').disabled=true;
+  }
+}
+
+
+// ===== Interatividade de Arraste e Redimensionamento de Portas no Cenário =====
+function setupDoorInteractions(){
+  const arena = $('#boardArena');
+  if(!arena) return;
+
+  arena.onmousedown = (e) => {
+    const handle = e.target.closest('.door-resize-handle');
+    const doorBox = e.target.closest('.arena-door-zone');
+    if(!doorBox) return;
+
+    const idx = parseInt(doorBox.dataset.doorIdx, 10);
+    if(isNaN(idx) || !SECRET_DOORS[idx]) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    document.querySelectorAll('.arena-door-zone').forEach(el => el.classList.remove('is-selected'));
+    doorBox.classList.add('is-selected');
+
+    document.querySelectorAll('.door-card').forEach((c, ci) => {
+      c.style.borderColor = (ci === idx) ? 'var(--warn)' : '';
+      if(ci === idx) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    let mode = 'move';
+    if(handle){
+      if(handle.classList.contains('door-handle-l')) mode = 'left';
+      else if(handle.classList.contains('door-handle-r')) mode = 'right';
+      else if(handle.classList.contains('door-handle-t')) mode = 'top';
+    }
+
+    const d = SECRET_DOORS[idx];
+    DRAGGING_DOOR = {
+      idx,
+      mode,
+      startX: e.clientX,
+      startY: e.clientY,
+      origMinX: d.minX,
+      origMaxX: d.maxX,
+      origMaxY: d.maxY,
+      box: doorBox
+    };
+  };
+
+  if(!window._doorListenersAdded){
+    window._doorListenersAdded = true;
+    window.addEventListener('mousemove', (e) => {
+      if(!DRAGGING_DOOR) return;
+      const { idx, mode, startX, startY, origMinX, origMaxX, origMaxY, box } = DRAGGING_DOOR;
+      const dx = Math.round((e.clientX - startX) / BOARD_ZOOM);
+      const dy = Math.round((e.clientY - startY) / BOARD_ZOOM);
+
+      const d = SECRET_DOORS[idx];
+      if(!d) return;
+
+      if(mode === 'move'){
+        const width = origMaxX - origMinX;
+        d.minX = Math.max(0, origMinX + dx);
+        d.maxX = d.minX + width;
+      } else if(mode === 'left'){
+        d.minX = Math.max(0, Math.min(origMinX + dx, d.maxX - 16));
+      } else if(mode === 'right'){
+        d.maxX = Math.max(d.minX + 16, origMaxX + dx);
+      } else if(mode === 'top'){
+        d.maxY = Math.max(140, Math.min(224, origMaxY + dy));
+      }
+
+      const isPano = (BOARD_VIEW_MODE === 'pano');
+      const dLeft = Math.round((isPano ? d.minX : (d.minX + 70)) * BOARD_ZOOM);
+      const dW = Math.max(24, Math.round((d.maxX - d.minX) * BOARD_ZOOM));
+      const dTop = Math.round(135 * BOARD_ZOOM);
+      const dH = Math.max(28, Math.round((d.maxY - 135) * BOARD_ZOOM));
+
+      box.style.left = `${dLeft}px`;
+      box.style.width = `${dW}px`;
+      box.style.top = `${dTop}px`;
+      box.style.height = `${dH}px`;
+
+      const tag = box.querySelector('.door-tag');
+      if(tag){
+        tag.textContent = `🚪 PORTA #${idx+1} (X:${d.minX}..${d.maxX}) ➔ ${areaLabel(d.destStage)}`;
+      }
+
+      const inpMin = document.querySelector(`.inp_door_min[data-idx="${idx}"]`);
+      const inpMax = document.querySelector(`.inp_door_max[data-idx="${idx}"]`);
+      const inpY = document.querySelector(`.inp_door_y[data-idx="${idx}"]`);
+      if(inpMin) inpMin.value = d.minX;
+      if(inpMax) inpMax.value = d.maxX;
+      if(inpY) inpY.value = d.maxY;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if(DRAGGING_DOOR){
+        DRAGGING_DOOR = null;
+      }
+    });
+  }
+}
+
+function addDoorAtVisualCenter(){
+  const s = ST ? ST.stages[CUR] : null;
+  const curStage = s ? s.row + 1 : 1;
+  const viewport = $('.board-viewport');
+  const scrollX = viewport ? viewport.scrollLeft / BOARD_ZOOM : 0;
+  const isPano = (BOARD_VIEW_MODE === 'pano');
+  const centerX = Math.round(scrollX + (isPano ? 200 : 128));
+
+  const newDoor = {
+    id: SECRET_DOORS.length + 1,
+    srcStage: curStage,
+    destStage: 7, // Bar Creep Eats padrão
+    exitStage: 3, // Chefe Dave padrão
+    minX: Math.max(0, centerX - 45),
+    maxX: centerX + 45,
+    maxY: 205
+  };
+
+  SECRET_DOORS.push(newDoor);
+  render();
+
+  setTimeout(() => {
+    const newBox = document.querySelector(`[data-door-idx="${SECRET_DOORS.length - 1}"]`);
+    if(newBox) {
+      newBox.classList.add('is-selected');
+      newBox.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, 60);
+}
+
+function selectEnemy(idx){
+  SELECTED_IDX=idx;
+  const s=ST.stages.find(x=>x.row===CUR);
+  if(!s)return;
+  
+  document.querySelectorAll('.enemy-token').forEach(t=>{
+    t.classList.toggle('is-selected', +t.dataset.idx===idx);
+  });
+
+  document.querySelectorAll('tr[data-row-idx]').forEach(tr=>{
+    tr.classList.toggle('row-selected', +tr.dataset.rowIdx===idx);
+    if(+tr.dataset.rowIdx===idx) tr.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+
+  updateSelectedLabel(s);
+}
+
+function setPos(s,idx,newXPx,newYPx){
+  const it=s.items[idx];
+  if(!it||it.t!=='rec')return;
+  if(newXPx!=null) setW(it.b, 11, Math.round(newXPx * 16));
+  if(newYPx!=null) setW(it.b, 13, Math.round(newYPx * 16));
+  render();
+  selectEnemy(idx);
+}
+
+function setupTokenDrag(token, s, idx){
+  let dragging=false;
+  let startX, startY;
+  let initTokenLeft, initTokenTop;
+
+  token.onpointerdown=(ev)=>{
+    if(ev.button!==0)return;
+    ev.preventDefault();
+    selectEnemy(idx);
+    dragging=true;
+    token.setPointerCapture(ev.pointerId);
+    token.classList.add('is-dragging');
+
+    startX=ev.clientX;
+    startY=ev.clientY;
+    initTokenLeft=parseFloat(token.style.left);
+    initTokenTop=parseFloat(token.style.top);
+
+    const guideX=$('#dragGuideX');
+    const guideY=$('#dragGuideY');
+    if(guideX) guideX.style.display='block';
+    if(guideY) guideY.style.display='block';
+  };
+
+  token.onpointermove=(ev)=>{
+    if(!dragging)return;
+    ev.preventDefault();
+
+    const dx=ev.clientX-startX;
+    const dy=ev.clientY-startY;
+
+    const curLeft=initTokenLeft+dx;
+    const curTop=initTokenTop+dy;
+
+    token.style.left=`${curLeft}px`;
+    token.style.top=`${curTop}px`;
+
+    const isPano = (BOARD_VIEW_MODE === 'pano');
+    let trigPx = rec.trig(s.items[idx].b) / 16;
+    if(trigPx === 0) {
+      for(let j=idx-1; j>=0; j--){
+        if(s.items[j].t==='rec' && rec.trig(s.items[j].b) > 0){
+          trigPx = rec.trig(s.items[j].b) / 16;
+          break;
+        }
+      }
+    }
+    const isAbs = (s.items[idx].b[10] === 1);
+    const curWorldX = curLeft / BOARD_ZOOM;
+    const gameXPx = isAbs ? Math.round(curWorldX) : (isPano ? Math.round(curWorldX - trigPx) : Math.round(curWorldX - 70));
+    const gameYPx = Math.round(curTop / BOARD_ZOOM);
+
+    const coordEl=token.querySelector('.token-coords');
+    if(coordEl) coordEl.textContent=`${isPano ? 'Mundo X:' + Math.round(curWorldX) : 'Tela X:' + gameXPx} Y:${gameYPx}`;
+
+    const guideX=$('#dragGuideX');
+    const guideY=$('#dragGuideY');
+    if(guideX) guideX.style.left=`${curLeft}px`;
+    if(guideY) guideY.style.top=`${curTop}px`;
+
+    const inpX=document.querySelector(`input[data-i="${idx}"][data-f="x"]`);
+    const inpY=document.querySelector(`input[data-i="${idx}"][data-f="y"]`);
+    if(inpX) inpX.value = gameXPx * 16;
+    if(inpY) inpY.value = gameYPx * 16;
+  };
+
+  const endDrag=(ev)=>{
+    if(!dragging)return;
+    dragging=false;
+    token.classList.remove('is-dragging');
+    try{token.releasePointerCapture(ev.pointerId);}catch(e){}
+
+    const guideX=$('#dragGuideX');
+    const guideY=$('#dragGuideY');
+    if(guideX) guideX.style.display='none';
+    if(guideY) guideY.style.display='none';
+
+    const curLeft=parseFloat(token.style.left);
+    const curTop=parseFloat(token.style.top);
+
+    const isPano = (BOARD_VIEW_MODE === 'pano');
+    let trigPx = rec.trig(s.items[idx].b) / 16;
+    if(trigPx === 0) {
+      for(let j=idx-1; j>=0; j--){
+        if(s.items[j].t==='rec' && rec.trig(s.items[j].b) > 0){
+          trigPx = rec.trig(s.items[j].b) / 16;
+          break;
+        }
+      }
+    }
+    const isAbs = (s.items[idx].b[10] === 1);
+    const curWorldX = curLeft / BOARD_ZOOM;
+    const gameXPx = isAbs ? Math.round(curWorldX) : (isPano ? Math.round(curWorldX - trigPx) : Math.round(curWorldX - 70));
+    const gameYPx = Math.round(curTop / BOARD_ZOOM);
+
+    setW(s.items[idx].b, 11, gameXPx * 16);
+    setW(s.items[idx].b, 13, gameYPx * 16);
+
+    renderSide();
+    updateSelectedLabel(s);
+  };
+
+  token.onpointerup=endDrag;
+  token.onpointercancel=endDrag;
+}
+
+// Suporte a teclas direcionais (← ↑ → ↓) para ajuste fino do inimigo selecionado
+if(typeof window!=='undefined'){
+window.onkeydown=(e)=>{
+  if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  if(SELECTED_IDX==null)return;
+  const s=ST&&ST.stages.find(x=>x.row===CUR);
+  if(!s||!s.items[SELECTED_IDX]||s.items[SELECTED_IDX].t!=='rec')return;
+
+  const step=e.shiftKey?10:1;
+  const it=s.items[SELECTED_IDX];
+  let curX=Math.round(rec.x(it.b)/16);
+  let curY=Math.round(rec.y(it.b)/16);
+
+  if(e.key==='ArrowLeft'){
+    e.preventDefault();
+    setPos(s, SELECTED_IDX, curX - step, null);
+  }else if(e.key==='ArrowRight'){
+    e.preventDefault();
+    setPos(s, SELECTED_IDX, curX + step, null);
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    setPos(s, SELECTED_IDX, null, curY - step);
+  }else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    setPos(s, SELECTED_IDX, null, curY + step);
+  }else if(e.key==='Delete'){
+    e.preventDefault();
+    action(s, SELECTED_IDX, 'del');
+  }else if(e.key==='d'&&(e.ctrlKey||e.metaKey)){
+    e.preventDefault();
+    action(s, SELECTED_IDX, 'dup');
+  }
+};
+}
+
+function edit(s,e){
+  const it=s.items[+e.dataset.i];const b=it.b,f=e.dataset.f;
+  const hx=v=>{const n=parseInt(v,16);return isNaN(n)?0:n&255;};const dn=v=>{const n=parseInt(v,10);return isNaN(n)?0:n;};
+  if(f==='w')b[1]=hx(e.value);
+  else if(f==='raw'){const u=unhex(e.value.replace(/\s/g,''));if(u.length===b.length&&u[0]===0xFF&&u[1]===0xFC)it.b=Array.from(u);}
+  else if(f==='gate')b[0]=hx(e.value);else if(f==='mode')b[1]=+e.value;else if(f==='trig')setW(b,2,dn(e.value));
+  else if(f==='type') {
+      const newType = (+e.value) & 0x3F;
+      b[4] = +e.value;
+      const isBoss = (newType >= 20 && newType <= 26);
+      if(!isBoss){
+        // 1. Ajusta VRAM se estava com tamanho de chefe
+        if(b[5] > 3 || b[5] === 0){
+          const isBig = (newType === 7 || newType === 8 || newType === 9 || newType === 14 || newType === 19);
+          b[5] = isBig ? 3 : 2;
+        }
+        // 2. Se a posição era absoluta (comum em chefes que usam intro especial fora da tela),
+        // converte para posição relativa à câmera para o inimigo comum poder andar e lutar
+        if(b[10] === 1){
+          b[10] = 0; // relativa à câmera
+          const curXPx = rec.x(b) / 16;
+          if(curXPx > 300 || curXPx < -60){
+            setW(b, 11, 275 * 16); // Entrada padrão pela direita
+          }
+        }
+        // 3. Se Y estiver fora do chão jogável (ex: Callman a 144px na parede/balcão, ou Caine a 128px no mezanino)
+        const curY = rec.y(b) / 16;
+        if(curY < 155 || curY > 215){
+          setW(b, 13, 184 * 16); // Alinha no centro do chão (184px) para não travar na colisão
+        }
+      }
+    }else if(f==='gfx')b[5]=hx(e.value);else if(f==='item')b[6]=hx(e.value);
+  else if(f==='hp')setW(b,7,dn(e.value));else if(f==='move')b[9]=hx(e.value);else if(f==='pos')b[10]=+e.value;
+  else if(f==='x')setW(b,11,dn(e.value));else if(f==='y')setW(b,13,dn(e.value));else if(f==='z')setW(b,15,dn(e.value));
+  render();
+}
+
+function action(s,i,a){
+  const L=s.items;
+  if(a==='del'){L.splice(i,1);SELECTED_IDX=null;}
+  else if(a==='dup'){L.splice(i+1,0,{t:L[i].t,b:L[i].b.slice()});SELECTED_IDX=i+1;}
+  else if(a==='up'&&i>0){[L[i-1],L[i]]=[L[i],L[i-1]];if(SELECTED_IDX===i)SELECTED_IDX=i-1;}
+  else if(a==='dn'&&i<L.length-1){[L[i+1],L[i]]=[L[i],L[i+1]];if(SELECTED_IDX===i)SELECTED_IDX=i+1;}
+  render();
+}
+
+function updateButtons(){
+  $('#save').disabled=!ST;
+  $('#ips').disabled=!ST;
+  $('#btn_save_proj').disabled=!ST;
+}
+function download(name,data,mime='application/octet-stream'){
+  const blob=(data instanceof Blob)?data:new Blob([data],{type:mime});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function showLog(lines,err){const l=$('#log');if(!l)return;l.style.display='block';l.style.color=err?'var(--acc)':'inherit';l.textContent=lines.join('\n');}
+
+let PENDING_PROJECT = null;
+
+function exportProject(){
+  if(!ST) return;
+  const projectData = {
+    app: "FF3 Script & Visual Editor",
+    version: "2026.1",
+    timestamp: new Date().toISOString(),
+    romName: NAME || "Final_Fight_3",
+    options: {
+      slots4: $('#p_slots').checked,
+      p2vram: $('#p_p2vram').checked,
+      allgates: $('#p_allgates').checked,
+      secretDoor: $('#p_secret_door').checked,
+      share: $('#p_share').checked
+    },
+    secretDoors: JSON.parse(JSON.stringify(SECRET_DOORS)),
+    stages: ST.stages.map(s => ({
+      id: s.id,
+      row: s.row,
+      area: s.area,
+      isCustomStage: !!s.isCustomStage,
+      templateStage: s.templateStage,
+      items: s.items.map(it => ({
+        t: it.t || 'rec',
+        b: it.b.slice()
+      }))
+    }))
+  };
+
+  const jsonStr = JSON.stringify(projectData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const filename = (NAME || 'FF3_Projeto') + '_projeto.json';
+  download(filename, blob, 'application/json');
+  showLog([
+    `✓ Projeto exportado com sucesso: ${filename}`,
+    `  • Fases salvas: ${projectData.stages.length}`,
+    `  • Portas secretas salvas: ${projectData.secretDoors.length}`,
+    `  • Data do arquivo: ${new Date().toLocaleString()}`
+  ]);
+}
+
+function applyProjectData(projectData){
+  if(!projectData) return 0;
+  
+  // 1. Restaurar Opções
+  if(projectData.options){
+    if(projectData.options.slots4 != null) $('#p_slots').checked = !!projectData.options.slots4;
+    if(projectData.options.p2vram != null) $('#p_p2vram').checked = !!projectData.options.p2vram;
+    if(projectData.options.allgates != null) $('#p_allgates').checked = !!projectData.options.allgates;
+    if(projectData.options.secretDoor != null){
+      $('#p_secret_door').checked = !!projectData.options.secretDoor;
+      SECRET_CONFIG.enabled = $('#p_secret_door').checked;
+    }
+    if(projectData.options.share != null) $('#p_share').checked = !!projectData.options.share;
+  }
+
+  // 2. Restaurar Portas Secretas
+  if(Array.isArray(projectData.secretDoors)){
+    SECRET_DOORS = projectData.secretDoors.map(d => ({
+      id: d.id,
+      srcStage: d.srcStage,
+      destStage: d.destStage,
+      exitStage: d.exitStage,
+      minX: d.minX,
+      maxX: d.maxX,
+      maxY: d.maxY
+    }));
+  }
+
+  // 3. Restaurar Fases
+  let modifiedCount = 0;
+  if(ST && Array.isArray(projectData.stages)){
+    for(const projStage of projectData.stages){
+      let s = ST.stages.find(x => x.id === projStage.id);
+      if(s){
+        if(Array.isArray(projStage.items)){
+          s.items = projStage.items.map(it => ({
+            t: it.t || 'rec',
+            b: it.b.slice()
+          }));
+        }
+        if(projStage.templateStage != null) s.templateStage = projStage.templateStage;
+        modifiedCount++;
+      } else if(projStage.id === 44 || projStage.isCustomStage){
+        const tplStageId = projStage.templateStage || 7;
+        const tplStage = ST.stages.find(x => x.id === tplStageId) || ST.stages[0];
+        const items = Array.isArray(projStage.items)
+          ? projStage.items.map(it => ({ t: it.t || 'rec', b: it.b.slice() }))
+          : tplStage.items.map(it => ({ t: it.t, b: it.b.slice() }));
+        const newStage = {
+          row: ST.stages.length,
+          id: projStage.id || 44,
+          area: projStage.area || 44,
+          ptrAt: 0x000F90,
+          templateStage: tplStageId,
+          isCustomStage: true,
+          start: 0x3F0000,
+          end: 0x3F0000 + (items.length * 12) + 2,
+          items: items,
+          orig: tplStage.orig ? tplStage.orig.map(x => x.slice()) : items.map(x => x.b.slice())
+        };
+        ST.stages.push(newStage);
+        modifiedCount++;
+      }
+    }
+    render();
+  }
+  return modifiedCount;
+}
+
+function build(){
+  return buildRom(ROM,ST,{
+    slots4:$('#p_slots').checked,
+    p2vram:$('#p_p2vram').checked,
+    allgates:$('#p_allgates').checked,
+    secretDoor:$('#p_secret_door').checked,
+    secretDoors:SECRET_DOORS,
+    share:$('#p_share').checked
+  });
+}
+
+$('#open').onclick=()=>$('#file').click();
+$('#btn_save_proj').onclick = exportProject;
+$('#btn_load_proj').onclick = () => $('#file_proj').click();
+
+$('#file_proj').onchange = async e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  try {
+    const text = await f.text();
+    const data = JSON.parse(text);
+    if(!data || (!Array.isArray(data.stages) && !Array.isArray(data.secretDoors))){
+      throw new Error("Arquivo JSON não parece ser um projeto válido do editor.");
+    }
+    if(ST){
+      const count = applyProjectData(data);
+      showLog([
+        `✓ Projeto "${f.name}" carregado com sucesso!`,
+        `  • Fases restauradas: ${count}`,
+        `  • Portas secretas restauradas: ${SECRET_DOORS.length}`,
+        `  • Opções de patch aplicadas.`
+      ]);
+    } else {
+      PENDING_PROJECT = data;
+      $('#fname').textContent = `Projeto pré-carregado (${f.name}) · Abra a ROM...`;
+      showLog([
+        `✓ Projeto "${f.name}" pré-carregado na memória!`,
+        `  • Clique em "Abrir ROM…" para carregar a ROM do Final Fight 3 e aplicar todas as alterações salvas automaticamente.`
+      ]);
+    }
+  } catch(err){
+    showLog([`ERRO ao carregar JSON de projeto: ${err.message}`], true);
+  } finally {
+    $('#file_proj').value = '';
+  }
+};
+
+$('#file').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;NAME=f.name.replace(/\.[^.]+$/,'');
+  try{
+    ROM=new Uint8Array(await f.arrayBuffer());
+    ST=loadStages(ROM);
+    let logMsg = null;
+    if(PENDING_PROJECT){
+      const count = applyProjectData(PENDING_PROJECT);
+      logMsg = [
+        `✓ ROM carregada e Projeto prévio aplicado com sucesso!`,
+        `  • Fases restauradas: ${count}`,
+        `  • Portas secretas restauradas: ${SECRET_DOORS.length}`
+      ];
+      PENDING_PROJECT = null;
+    }
+    CUR=ST.stages.sort((a,b)=>a.area-b.area)[0].row;
+    $('#fname').textContent=f.name+' · '+(ROM.length/1048576).toFixed(2)+' MB · '+ST.stages.length+' fases';
+    render();
+    if(logMsg) showLog(logMsg);
+  }catch(err){
+    ROM=ST=null;
+    $('#fname').textContent='ROM inválida: '+err.message;
+  }
+};
+
+$('#save').onclick=()=>{try{const r=build();download(NAME+'_editado.sfc',r.rom);showLog(r.log);}catch(err){showLog(['ERRO: '+err.message],true);}};
+$('#ips').onclick=()=>{
+  try{
+    const r=build();const o=ROM,n=r.rom;const out=[0x50,0x41,0x54,0x43,0x48];let i=0;
+    while(i<n.length){
+      if(n[i]===o[i]){i++;continue;}
+      let j=i;
+      while(j<n.length&&j-i<65000&&(n[j]!==o[j]||(j+1<n.length&&n[j+1]!==o[j+1])||(j+2<n.length&&n[j+2]!==o[j+2])))j++;
+      out.push((i>>16)&255,(i>>8)&255,i&255,((j-i)>>8)&255,(j-i)&255);
+      for(let k=i;k<j;k++)out.push(n[k]);
+      i=j;
+    }
+    out.push(0x45,0x4F,0x46);
+    download(NAME+'_editado.ips',Uint8Array.from(out));
+    showLog(r.log);
+  }catch(err){showLog(['ERRO: '+err.message],true);}
+};
+
+
+$('#btn_lang').onclick = () => {
+  CURRENT_LANG = (CURRENT_LANG === 'en') ? 'pt' : 'en';
+  try { localStorage.setItem('ff3_editor_lang', CURRENT_LANG); } catch(e){}
+  updateStaticI18n();
+  render();
+};
+
+try {
+  const savedLang = localStorage.getItem('ff3_editor_lang');
+  if(savedLang === 'pt' || savedLang === 'en') CURRENT_LANG = savedLang;
+} catch(e){}
+updateStaticI18n();
+
+['p_slots','p_p2vram','p_allgates','p_secret_door','p_share'].forEach(id=>$('#'+id).onchange=()=>{
+  if(id==='p_p2vram'&&$('#p_p2vram').checked)$('#p_share').checked=false;
+  if(id==='p_share'&&$('#p_share').checked)$('#p_p2vram').checked=false;
+  SECRET_CONFIG.enabled = $('#p_secret_door').checked;
+  if(ST)render();
+});
+
+// Drag and Drop de arquivos (.sfc / .smc / .json)
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', async e => {
+  e.preventDefault();
+  if(!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+  const f = e.dataTransfer.files[0];
+  if(f.name.toLowerCase().endsWith('.json')){
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+      if(!data || (!Array.isArray(data.stages) && !Array.isArray(data.secretDoors))){
+        throw new Error("Arquivo JSON não é um projeto válido do editor.");
+      }
+      if(ST){
+        const count = applyProjectData(data);
+        showLog([
+          `✓ Projeto "${f.name}" (Drop) carregado com sucesso!`,
+          `  • Fases restauradas: ${count}`,
+          `  • Portas secretas restauradas: ${SECRET_DOORS.length}`
+        ]);
+      } else {
+        PENDING_PROJECT = data;
+        $('#fname').textContent = `Projeto pré-carregado (${f.name}) · Abra a ROM...`;
+        showLog([`✓ Projeto "${f.name}" pré-carregado! Agora arraste ou abra a ROM do Final Fight 3.`]);
+      }
+    } catch(err){
+      showLog([`ERRO ao processar arquivo JSON: ${err.message}`], true);
+    }
+  } else if(/\.(sfc|smc|rom|bin)$/i.test(f.name)){
+    NAME = f.name.replace(/\.[^.]+$/,'');
+    try{
+      ROM = new Uint8Array(await f.arrayBuffer());
+      ST = loadStages(ROM);
+      let logMsg = null;
+      if(PENDING_PROJECT){
+        const count = applyProjectData(PENDING_PROJECT);
+        logMsg = [
+          `✓ ROM carregada e Projeto prévio aplicado com sucesso!`,
+          `  • Fases restauradas: ${count}`,
+          `  • Portas secretas restauradas: ${SECRET_DOORS.length}`
+        ];
+        PENDING_PROJECT = null;
+      }
+      CUR = ST.stages.sort((a,b)=>a.area-b.area)[0].row;
+      $('#fname').textContent = f.name+' · '+(ROM.length/1048576).toFixed(2)+' MB · '+ST.stages.length+' fases';
+      render();
+      if(logMsg) showLog(logMsg);
+    }catch(err){
+      ROM=ST=null;
+      $('#fname').textContent='ROM inválida: '+err.message;
+    }
+  }
+});
+
+</script>
+</body>
+</html>
